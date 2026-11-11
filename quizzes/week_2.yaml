@@ -1,0 +1,152 @@
+week: 2
+title: "RAG: Building GradeWise's Knowledge Base"
+questions:
+  - id: w2-q1
+    lecture: "Day 1 - Why RAG? Hallucinations, Knowledge Cut-offs and Grounding"
+    question: "A model confidently invents a CS201 marking rule that isn't in Asha's handbook. What does RAG change to fix this?"
+    options:
+      - "It fine-tunes the model's weights on the handbook so it remembers the rules"
+      - "It retrieves the relevant handbook passages and puts them in the prompt, so the model answers from them"
+      - "It lowers the temperature to 0 so the model can no longer make things up"
+      - "It switches to a bigger model with a later knowledge cut-off"
+    answer: 1
+    explanations:
+      - "That's fine-tuning, a different (slower, costlier) technique. RAG never changes the model's weights."
+      - "Correct. RAG changes what the model SEES, not what it is: retrieve, augment the prompt, then generate, with citations back to the source."
+      - "Temperature 0 makes output more repeatable, not more truthful. A deterministic model can hallucinate deterministically."
+      - "No model, however new, was trained on Asha's private course notes written this term."
+
+  - id: w2-q2
+    lecture: "Day 1 - Embeddings Visually Explained: Meaning as Geometry"
+    question: "Vector A is a short sentence about deadlocks. Vector B points in exactly the same direction but is 3 times longer. What is their cosine similarity?"
+    options:
+      - "1/3, because B is three times longer"
+      - "0, because the vectors have different lengths"
+      - "1.0, because cosine only depends on direction"
+      - "3.0, because cosine grows with vector length"
+    answer: 2
+    explanations:
+      - "Length doesn't enter cosine similarity at all: it is the dot product divided by both lengths."
+      - "0 would mean the vectors are at right angles (unrelated). These point the same way."
+      - "Correct. Cosine measures the angle between vectors, so same direction = 1.0 whatever the lengths. That's why it suits text of different lengths."
+      - "That describes the dot product, which does grow with length. Cosine is always between -1 and 1."
+
+  - id: w2-q3
+    lecture: "Day 2 - Loading PDFs: PyPDF vs PyMuPDF vs pymupdf4llm vs Docling"
+    question: "With raw PyMuPDF text, a keyword search for 'five' misses the sentence 'at most five threads'. What is the most likely cause?"
+    options:
+      - "PyMuPDF skips text in bold"
+      - "The sentence was in a running footer that PyMuPDF removes"
+      - "Keyword search is case-sensitive and the PDF says 'Five'"
+      - "The PDF stores 'fi' as a single ligature glyph, so the extracted word is 'ﬁve', not 'five'"
+    answer: 3
+    explanations:
+      - "PyMuPDF extracts bold text fine; it just doesn't mark it as bold."
+      - "Raw PyMuPDF doesn't remove anything, footers included. Removing them is GradeWise's job (strip_running_lines)."
+      - "The sentence uses lower-case 'five'; and GradeWise's tokenizer lower-cases everything anyway."
+      - "Correct. Ligatures (ﬁ, ﬀ, ﬂ) survive raw extraction and silently break keyword matching and BM25. pymupdf4llm normalises them."
+
+  - id: w2-q4
+    lecture: "Day 2 - Structure-Aware Chunking with Rich Metadata"
+    question: "A chunk reads 'A deadlock can arise only if all four of these conditions hold...' but never says which topic it belongs to in a way BM25 can use for the query 'Coffman conditions'. Which GradeWise feature helps most?"
+    options:
+      - "A larger chunk_overlap"
+      - "Switching hnsw:space from cosine to l2"
+      - "The contextual chunk header, e.g. '[CS201 Unit 1: Operating Systems > 1.6 Deadlocks]', prepended to the text"
+      - "Storing the page number in the metadata"
+    answer: 2
+    explanations:
+      - "Overlap repeats neighbouring text at chunk boundaries; it doesn't add the topic to a chunk that lacks it."
+      - "The distance metric affects dense similarity scores, not which words BM25 can match."
+      - "Correct. chunk_documents(contextual_header=True) prepends the title and section, so both embeddings and BM25 know what the chunk is about."
+      - "Metadata is great for filters and citations, but it isn't part of the text that gets embedded or keyword-scored."
+
+  - id: w2-q5
+    lecture: "Day 3 - Vector Databases: HNSW, Distance Metrics and Metadata Filters"
+    question: "What's the bug? `store.get(where={\"unit\": 2, \"page\": {\"$gte\": 3}})` raises a ValueError in Chroma."
+    options:
+      - "Chroma needs the page as a string: {\"$gte\": \"3\"}"
+      - "Chroma's where allows only one top-level key; combine conditions with {\"$and\": [{\"unit\": 2}, {\"page\": {\"$gte\": 3}}]}"
+      - "Metadata filters only work with similarity_search, not get"
+      - "$gte isn't a Chroma operator; use $min"
+    answer: 1
+    explanations:
+      - "Page is stored as an integer, and $gte compares numbers. Making it a string would break the comparison."
+      - "Correct. That's exactly what gradewise.rag.retrievers.to_chroma_where() does for you."
+      - "get() accepts where filters too; Day 3 uses store.get(where={\"unit\": unit}) to count chunks per unit."
+      - "$gte is a valid Chroma operator; there is no $min."
+
+  - id: w2-q6
+    lecture: "Day 3 - Idempotent Ingestion: Hashing, De-duplication, Re-indexing"
+    question: "Look at this home-made ingestion: `store.add_documents(chunks, ids=[str(uuid.uuid4()) for _ in chunks])`. What happens when it runs a second time on unchanged PDFs?"
+    options:
+      - "Every chunk is stored twice, and you pay to embed everything again"
+      - "Nothing: Chroma notices the text is identical and skips it"
+      - "It raises an error because the collection already exists"
+      - "The old chunks are replaced by the new ones"
+    answer: 0
+    explanations:
+      - "Correct. Random IDs defeat de-duplication. GradeWise uses deterministic IDs (file, hash, chunk number) and skips files whose SHA-256 hash hasn't changed, so a re-run adds 0 chunks and costs $0."
+      - "Chroma identifies records by ID, not by content. New IDs mean new records."
+      - "get_vectorstore/Chroma open an existing collection happily; that's what persistence is for."
+      - "Replacement only happens when the SAME ID is added again. Here every ID is new."
+
+  - id: w2-q7
+    lecture: "Day 4 - Retrieval Strategies: Dense, BM25, Hybrid, MMR, Multi-Query, Reranking"
+    question: "Sam asks 'my program froze because two threads wait for each other forever'. BM25 returns 1.5 Synchronisation but misses 1.6 Deadlocks. Why, and what helps?"
+    options:
+      - "BM25 is broken offline; it needs real embeddings"
+      - "Vocabulary mismatch: the deadlock section doesn't use Sam's words. Dense retrieval (or hybrid, or multi-query rewrites) finds chunks with the same meaning"
+      - "The chunk size is too small; increase it to 5,000"
+      - "BM25 only looks at the first 10 words of each chunk"
+    answer: 1
+    explanations:
+      - "BM25 needs no embeddings at all, which is why it gives real results offline."
+      - "Correct. BM25 matches words; dense embeddings match meaning. Hybrid search fuses both, and multi-query rewrites the question in the notes' own vocabulary."
+      - "Bigger chunks wouldn't add the word 'deadlock' to Sam's question, and would blur every other result."
+      - "BM25 scores the whole chunk, with a length correction."
+
+  - id: w2-q8
+    lecture: "Day 4 - Hybrid Search and Reranking in Practice"
+    question: "With reciprocal-rank fusion (k = 60), chunk X is ranked 1st by dense and absent from BM25; chunk Y is ranked 2nd by dense and 1st by BM25. Which comes first after fusion, and why?"
+    options:
+      - "X, because a first place always wins"
+      - "They tie, because RRF ignores ranks below 1"
+      - "It depends on the raw cosine and BM25 scores"
+      - "Y, because it collects 1/62 + 1/61 against X's 1/61: agreement between retrievers beats a single top rank"
+    answer: 3
+    explanations:
+      - "Only true for a very small k. With k = 60, a second contribution easily outweighs one first place."
+      - "Every rank contributes 1/(k + rank); nothing is ignored."
+      - "RRF deliberately ignores raw scores: cosine distances and BM25 scores live on different scales and can't be added."
+      - "Correct. RRF sums w / (k + rank) over the lists, so chunks both retrievers like rise to the top."
+
+  - id: w2-q9
+    lecture: "Day 5 - Measuring Retrieval: MRR, nDCG and Recall@k with tests.jsonl"
+    question: "For one keyword, the top 5 chunks have relevance [0, 1, 0, 0, 1]. What is the reciprocal rank, and what does nDCG reward that MRR doesn't?"
+    options:
+      - "RR = 1/2; nDCG also rewards having the second relevant chunk, and having relevant chunks near the top"
+      - "RR = 2; nDCG rewards shorter chunks"
+      - "RR = 1/5; nDCG only counts the last relevant chunk"
+      - "RR = 0.4 (2 relevant out of 5); nDCG is the same thing as MRR"
+    answer: 0
+    explanations:
+      - "Correct. The first hit is at rank 2, so RR = 1/2. MRR ignores everything after the first hit; nDCG sums every relevant chunk, discounted by 1/log2(rank + 1), and divides by the ideal ordering."
+      - "Reciprocal rank is 1 / rank, so it can never exceed 1. And nDCG knows nothing about chunk length."
+      - "RR uses the FIRST relevant rank (2), not the last (5)."
+      - "2 out of 5 is precision@5, a different metric. MRR and nDCG measure different things."
+
+  - id: w2-q10
+    lecture: "Day 5 - From Simple to Pro: The GradeWise Ingestion Pipeline and CLI"
+    question: "You run `eval.py --offline --compare` and the simple pipeline scores far worse than pro. Why shouldn't you report this as 'pro is many times better'?"
+    options:
+      - "Because --compare only evaluates the first 10 questions"
+      - "Because the pro pipeline caches its answers"
+      - "Because --offline uses fake embeddings: the simple pipeline is dense-only, so its numbers are random. Compare with real embeddings, or hold the retriever fixed (e.g. BM25 for both)"
+      - "Because MRR can't compare two pipelines"
+    answer: 2
+    explanations:
+      - "--compare runs all 60 questions unless you pass --limit."
+      - "Nothing is cached between questions; retrieval runs fresh each time."
+      - "Correct. Offline dense scores are meaningless. Day 5 compares the ingestion fairly by giving both chunk sets the same BM25 retriever, where offline scores are real."
+      - "Comparing pipelines on the same test set is exactly what MRR and nDCG are for."

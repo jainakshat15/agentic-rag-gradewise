@@ -1,0 +1,12 @@
+# Normalise line endings so Windows, Mac and Linux learners see identical files
+* text=auto eol=lf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.pdf binary
+
+# Notebooks: run `uv run nbstripout --install` once to strip outputs on commit
+*.ipynb filter=nbstripout diff=ipynb

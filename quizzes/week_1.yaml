@@ -1,0 +1,165 @@
+# 📝 Quiz 1: Week 1 · 10 questions · mix: 4 concept, 4 code reading / spot the bug, 2 GradeWise design
+week: 1
+title: "Foundations & Your First Win: Exam Paper → JSON"
+questions:
+  - id: w1-q1
+    lecture: "Day 2 - How LLMs Work: Tokens, Context Windows, Temperature and Cost"
+    question: "On Day 2 you estimated one extraction of the CS201 exam pack: about 6,700 tokens in and 11,000 tokens out. Which part of the bill is biggest, and why?"
+    options:
+      - "The output, because there are more output tokens AND each one costs several times more than an input token"
+      - "The input, because the three PDFs are long documents"
+      - "Neither: providers charge per request, not per token"
+      - "The system prompt, because it is sent first"
+    answer: 0
+    explanations:
+      - "Correct. Output tokens are priced several times higher than input tokens, and the JSON is the longer side, so output was about 90% of the estimate."
+      - "The input is shorter than the output here, and input tokens are the cheaper kind."
+      - "Chat APIs bill per token (separately for input and output), not per request."
+      - "The system prompt is only around 600 tokens: a small slice of the input, which is already the cheaper side."
+  - id: w1-q2
+    lecture: "Day 2 - How LLMs Work: Tokens, Context Windows, Temperature and Cost"
+    question: "What happens to a model's next-token choice as the temperature moves towards 0?"
+    options:
+      - "The model gets more creative, because unlikely tokens are boosted"
+      - "The model reads more of its context window"
+      - "The probability mass concentrates on the most likely token, so output becomes near-deterministic"
+      - "Responses get shorter, because fewer tokens are generated"
+    answer: 2
+    explanations:
+      - "That's high temperature: dividing the scores by a large number flattens the distribution."
+      - "Temperature changes how the next token is sampled, not how much context the model reads."
+      - "Correct. Dividing the logits by a small temperature exaggerates the gaps, so softmax puts almost all the probability on the top token."
+      - "Temperature doesn't limit length; max_tokens and the prompt do."
+  - id: w1-q3
+    lecture: "Day 3 - Prompting for Extraction: System Prompts, Templates, Examples"
+    question: |-
+      This few-shot template raises an error as soon as you format it. Why?
+
+      prompt = ChatPromptTemplate.from_messages([
+          ("system", "Describe the question as JSON."),
+          ("human", "**Question 9** State the ACID properties. [4 marks]"),
+          ("ai", '{"number": "9", "max_marks": 4}'),
+          ("human", "{question}"),
+      ])
+      prompt.format_messages(question=q3_text)
+    options:
+      - "ChatPromptTemplate doesn't allow an \"ai\" message"
+      - "The { } braces in the example JSON are read as template placeholders, so the template wants variables that were never supplied"
+      - "There can only be one human message in a template"
+      - "format_messages needs invoke() instead"
+    answer: 1
+    explanations:
+      - "AI messages are fine in a template: that's how few-shot examples are written."
+      - "Correct. In a (role, text) tuple the text is a template, so { } must be escaped as {{ }}, or the example passed as an AIMessage object, which isn't templated."
+      - "Templates can hold any number of human and AI messages."
+      - "format_messages is a perfectly good way to render a template; invoke would hit the same error."
+  - id: w1-q4
+    lecture: "Day 3 - Structured Output with Pydantic: Reliable JSON Every Time"
+    question: |-
+      class ExtractedQuestion(BaseModel):
+          number: str
+          max_marks: float = Field(gt=0)
+
+      Which call succeeds?
+    options:
+      - "ExtractedQuestion.model_validate({\"number\": 3, \"max_marks\": 4})"
+      - "ExtractedQuestion.model_validate({\"number\": \"3\", \"max_marks\": 0})"
+      - "ExtractedQuestion.model_validate({\"number\": \"3\", \"max_marks\": \"4\"})"
+      - "ExtractedQuestion.model_validate({\"number\": \"3\"})"
+    answer: 2
+    explanations:
+      - "Pydantic won't quietly turn the int 3 into a str: \"Input should be a valid string\"."
+      - "gt=0 means strictly greater than zero, so 0 is rejected."
+      - "Correct. The numeric string \"4\" is safely coerced to the float 4.0."
+      - "max_marks has no default, so it is required: \"Field required\"."
+  - id: w1-q5
+    lecture: "Day 3 - Structured Output with Pydantic: Reliable JSON Every Time"
+    question: "You call llm.with_structured_output(ExamPaper).invoke(messages) and get an ExamPaper back without errors. What has that guaranteed?"
+    options:
+      - "That every mark matches the marking scheme"
+      - "That the same input will always give the same object"
+      - "That the question text was copied exactly"
+      - "That the object has the schema's shape: the right fields, with valid types and constraints"
+    answer: 3
+    explanations:
+      - "Structured output can't know the scheme: a perfectly valid ExamPaper can still have a wrong mark. That's why we check problems() and diff against the answer key."
+      - "Determinism isn't guaranteed (and reasoning models ignore temperature=0 entirely)."
+      - "Text fields only have to be strings; nothing checks they match the paper word for word."
+      - "Correct. Structured output guarantees the shape, not the truth."
+  - id: w1-q6
+    lecture: "Day 4 - Multimodal: Sending Images and PDF Pages to a Model"
+    question: "Which message sends a rendered PDF page to a model in the provider-neutral LangChain 1.x format?"
+    options:
+      - "HumanMessage(content=data_url)"
+      - "HumanMessage(content=[{\"type\": \"text\", \"text\": \"Read this page.\"}, {\"type\": \"image\", \"url\": data_url}])"
+      - "SystemMessage(content=[{\"type\": \"file\", \"path\": \"question_paper.pdf\"}])"
+      - "HumanMessage(content=\"Read this page.\", image=data_url)"
+    answer: 1
+    explanations:
+      - "A plain string content is sent as text: the model would receive 180,000 characters of base64, not a picture."
+      - "Correct. A list of content blocks, with an image block holding the data URL. Each provider package translates it (OpenAI into image_url, Anthropic into its own image source)."
+      - "There's no \"path\" block that reads files from your disk, and images belong in the user turn."
+      - "HumanMessage has no image= argument; images go inside content as blocks."
+  - id: w1-q7
+    lecture: "Day 4 - Tools and Tool Calling: @tool, bind_tools and the Tool Loop"
+    question: "When a model 'calls' your get_question tool, who actually runs the Python function?"
+    options:
+      - "The model provider runs it on its servers"
+      - "LangChain runs it automatically inside bind_tools"
+      - "Your code does: the model only returns a tool call (name + arguments), and you run it and send back a ToolMessage"
+      - "Nobody: the model predicts what the function would return"
+    answer: 2
+    explanations:
+      - "Your function never leaves your machine; the provider only sees its name, description and argument schema."
+      - "bind_tools only attaches the tool schemas to each request. It never executes anything."
+      - "Correct. That's why you wrote the loop on Day 4, and why a tool can only do what your function does."
+      - "The model asks for the tool precisely so it doesn't have to guess the result."
+  - id: w1-q8
+    lecture: "Day 4 - Tools and Tool Calling: @tool, bind_tools and the Tool Loop"
+    question: |-
+      What's the bug in this tool loop?
+
+      ai = model_with_tools.invoke(messages)
+      if ai.tool_calls:
+          for call in ai.tool_calls:
+              messages.append(tools_by_name[call["name"]].invoke(call))
+          ai = model_with_tools.invoke(messages)
+    options:
+      - "The AIMessage containing the tool calls is never appended, so the ToolMessages answer a request that isn't in the history"
+      - "tool.invoke(call) returns a plain string, not a message"
+      - "You must call bind_tools again before every invoke"
+      - "Tool calls must be run in reverse order"
+    answer: 0
+    explanations:
+      - "Correct. Each ToolMessage must follow the AIMessage whose tool_call_id it answers; providers like OpenAI reject the request otherwise. Append ai first, then the results. (It also only handles one round of tools.)"
+      - "Invoking a tool with the whole tool call returns a ToolMessage with the matching tool_call_id."
+      - "The bound model keeps its tools; binding once is enough."
+      - "Order doesn't matter: results are matched to calls by tool_call_id."
+  - id: w1-q9
+    lecture: "Day 5 - Designing the Exam Schema, Then Extracting the Paper to JSON"
+    question: "Why does ExamPaper check that criteria add up to each question's marks in a problems() method that returns a list, instead of a Pydantic validator that raises?"
+    options:
+      - "Pydantic validators can't do arithmetic"
+      - "So that wrong totals are silently accepted"
+      - "Because raising errors is slow"
+      - "So the model's answer is kept and the list of issues can be sent back to it to fix (self-correction), or shown to Asha"
+    answer: 3
+    explanations:
+      - "A model_validator can run any Python, including sums (Day 3's StrictQuestion did exactly that)."
+      - "The problems are reported (extract_exam warns about each one), not ignored."
+      - "Speed isn't the issue; keeping the answer and the feedback is."
+      - "Correct. A validator raising inside with_structured_output throws the whole answer away; a problems() list keeps it and becomes the feedback for extract_with_retry in week 3."
+  - id: w1-q10
+    lecture: "Day 5 - Designing the Exam Schema, Then Extracting the Paper to JSON"
+    question: "The paper says 'Answer ALL ten questions', but the ExamPaper has 15 entries, with Question 7 split into Q7a and Q7b, each carrying the shared stem with the IP address. Why design it this way?"
+    options:
+      - "It makes the JSON shorter"
+      - "Because LLMs can't handle nested sub-parts"
+      - "To make the totals add up"
+      - "Each entry is one markable unit that a grader can mark on its own: students label answers 'Q7(b)', and the stem is needed to check the subnet calculation"
+    answer: 3
+    explanations:
+      - "Copying the stem into each sub-part makes the JSON longer, not shorter."
+      - "Models handle nesting fine; the split is about what a grader needs."
+      - "The totals add up either way: 2 + 3 marks is the same 5 marks."
+      - "Correct. Week 4 maps answers to questions by ID, and week 5 runs one grader per entry, each with everything it needs (text, criteria, methodology) and nothing else."

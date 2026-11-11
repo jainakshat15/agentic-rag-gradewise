@@ -1,0 +1,78 @@
+# ╭──────────────────────────────────────────────────────────────────────╮
+# │  🎓 Agentic RAG with LangChain & LangGraph                           │
+# │  🐳 Week 6 · Day 4: docker-compose.yml, GradeWise in one command     │
+# │                                                                      │
+# │      docker compose up --build          → API :8000 + dashboard :8501│
+# │      GRADEWISE_DEMO=true docker compose up   (free, no API key)      │
+# │      docker compose --profile ollama up     (+ a local Ollama model) │
+# │      docker compose down                    (data stays in a volume) │
+# │                                                                      │
+# │  🔑 Keys come from your .env file at RUN time; they are never baked  │
+# │     into the image (.dockerignore excludes .env).                    │
+# ╰──────────────────────────────────────────────────────────────────────╯
+
+name: gradewise
+
+x-gradewise: &gradewise
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+  image: gradewise:latest
+  env_file:
+    - path: .env
+      required: false # 💡 no .env yet? Fine: run in demo mode
+  volumes:
+    - output:/app/output # 💡 databases, vector store, report cards, uploads: shared by both services
+  restart: unless-stopped
+
+services:
+  api:
+    <<: *gradewise
+    command: ["python", "-m", "gradewise.api"]
+    environment:
+      API_HOST: 0.0.0.0
+      API_PORT: "8000"
+      GRADEWISE_DEMO: ${GRADEWISE_DEMO:-false}
+      # 🏠 Using the ollama profile? Put OLLAMA_BASE_URL=http://ollama:11434 in your .env.
+    ports:
+      - "8000:8000"
+
+  ui:
+    <<: *gradewise
+    command:
+      - python
+      - -m
+      - streamlit
+      - run
+      - gradewise/ui/app.py
+      - --server.address=0.0.0.0
+      - --server.port=8501
+    environment:
+      API_URL: http://api:8000 # 💡 the service name IS the hostname on Compose's network
+    ports:
+      - "8501:8501"
+    depends_on:
+      api:
+        condition: service_healthy # ⏳ wait for the API's HEALTHCHECK, not just its process
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8501/_stcore/health', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+  # 🏠 Optional: a local model server. Only starts with `docker compose --profile ollama up`.
+  #    Then pull a model once: docker compose exec ollama ollama pull llama3.2
+  #    and set CHAT_MODEL=ollama:llama3.2 + OLLAMA_BASE_URL=http://ollama:11434 in .env.
+  ollama:
+    image: ollama/ollama:latest # 🚀 PRO: pin a version tag in production
+    profiles: ["ollama"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  output:
+  ollama:

@@ -1,0 +1,152 @@
+week: 5
+title: "The Grading Agent, Report Cards & Evaluation"
+questions:
+  - id: w5-q1
+    lecture: "Day 5 - Grader vs Human: Golden Set, MAE and Quadratic Weighted Kappa"
+    question: "On the golden set, GradeWise gives exactly the human's mark 60% of the time, but most of its misses are off by just one mark. Which metric best captures that it is close even when it isn't exact?"
+    options:
+      - "Exact agreement"
+      - "Quadratic weighted kappa"
+      - "Character error rate (CER)"
+      - "The number of answers flagged for review"
+    answer: 1
+    explanations:
+      - "Exact agreement is the 60%: it counts a one-mark miss exactly like a four-mark miss, so it can't show that the misses are small."
+      - "Correct. QWK weights each disagreement by the square of its size, so many small misses cost little, and it also corrects for the agreement you'd expect by chance."
+      - "CER measures transcription faithfulness (characters read wrongly), not agreement between two markers."
+      - "The review count tells you about workload, not about how close the marks are to the human's."
+
+  - id: w5-q2
+    lecture: "Day 1 - LLM-as-Grader: Rubrics, Bias, Consistency and Human Oversight"
+    question: "Sam writes a brilliant Q3 and a weak Q4b. Which part of GradeWise's design stops his Q3 from inflating his Q4b mark (the halo effect)?"
+    options:
+      - "The examiner prompt tells the model to be fair"
+      - "Self-consistency: every answer is graded three times"
+      - "Each question is graded in its own fresh agent run that only sees that question and that answer"
+      - "enforce_rubric() clamps every criterion to its maximum"
+    answer: 2
+    explanations:
+      - "Telling a model to be fair helps a little, but if Q3 is in its context it can still be swayed. The fix is structural."
+      - "Repeating a grading run reduces random variation; if every run saw the whole script, every run would share the same halo."
+      - "Correct. The Send fan-out gives every question a separate run (the question travels in the GradingContext), so the grader never sees Sam's other answers."
+      - "Clamping stops marks above the maximum; a halo effect inflates marks that are still within range."
+
+  - id: w5-q3
+    lecture: "Day 2 - Grading Tools: `retrieve_reference`, `get_rubric`, `flag_for_review`"
+    question: "`retrieve_reference(query: str, runtime: ToolRuntime[GradingContext])` has two parameters, yet the model is only ever asked for `query`. Why?"
+    options:
+      - "LangChain injects `runtime` when the tool runs and hides it from the tool schema the model sees"
+      - "`runtime` is optional and defaults to None, so the model can leave it out"
+      - "The model does send `runtime`, but LangChain ignores it"
+      - "Tools may only have one parameter; the second is a type hint for documentation"
+    answer: 0
+    explanations:
+      - "Correct. A `ToolRuntime` parameter is filled in by LangChain from the run (here, `context=GradingContext(...)` passed to agent.invoke); it never appears in `tool_call_schema`, so the model can't see or change the question, the retriever or the flags."
+      - "It isn't optional: `_context()` raises GradingContextError when there is no GradingContext. And an optional parameter would still appear in the schema."
+      - "The model never sees `runtime` in the schema, so it has nothing to send."
+      - "Tools can have many parameters (the model fills in every one in the schema). `runtime` is special because of its ToolRuntime type."
+
+  - id: w5-q4
+    lecture: "Day 2 - Grading Every Question in Parallel with `Send`"
+    question: "A learner rewrites GradingState with `results: list[GradeResult]` (no `Annotated[..., operator.add]`). What happens when the Send fan-out grades 15 questions?"
+    options:
+      - "Nothing changes: LangGraph always concatenates lists from parallel branches"
+      - "Only the last question to finish is kept, silently"
+      - "LangGraph raises an error, because several branches write to the same key in one step and there is no reducer to combine them"
+      - "The questions are graded one after another instead of in parallel"
+    answer: 2
+    explanations:
+      - "Lists are only concatenated when you ask for it, with a reducer such as operator.add."
+      - "LangGraph refuses to guess which write should win; it doesn't silently drop updates from parallel branches."
+      - "Correct. Without a reducer, concurrent writes to `results` in the same super-step are an InvalidUpdateError. The reducer is what lets every branch ADD its GradeResult."
+      - "Parallelism comes from Send and max_concurrency, not from the state's type annotations."
+
+  - id: w5-q5
+    lecture: "Day 2 - Reliable Marks: Guardrails, Self-Consistency and Prompt-Injection Defense"
+    question: "With consistency_runs=3, three runs give an answer 3, 3 and 0 marks (out of 4). What does `self_consistency()` return?"
+    options:
+      - "2 marks (the mean), with no flag"
+      - "3 marks (the median), with confidence unchanged"
+      - "0 marks, because the most cautious run wins"
+      - "3 marks (the median), flagged for review because the runs spread by more than a mark"
+    answer: 3
+    explanations:
+      - "The mean, 2, is a mark that no run actually gave, and a single odd run drags it down. That's why GradeWise uses the median."
+      - "The median is right, but disagreement lowers the confidence: a spread of 3 out of 4 marks cuts it substantially."
+      - "There is no 'most cautious run wins' rule; that would bias every mark downwards."
+      - "Correct. Each criterion gets the median (robust to one odd run), the confidence is lowered by the spread, and a spread of 3 > max_spread (1 mark) adds 'inconsistent marks across 3 runs' to the review reason."
+
+  - id: w5-q6
+    lecture: "Day 2 - Reliable Marks: Guardrails, Self-Consistency and Prompt-Injection Defense"
+    question: "In `grade_answer()`, `detect_injection()` and `strip_injection()` run on the student's text BEFORE `build_grading_prompt()`. Why there, and not after the model has replied?"
+    options:
+      - "So the model never reads the instruction it might obey; the rest of the answer is still marked and the script is flagged"
+      - "Because regexes are faster before the LLM call"
+      - "So an answer containing an injection automatically gets 0 marks"
+      - "Because the model's reply is structured output and can't be searched with regexes"
+    answer: 0
+    explanations:
+      - "Correct. Removing the sentence first means a gullible model can't follow it, principle 10 is respected (the instruction is ignored, the DNS content is still marked), and apply_guardrails() flags the script for Asha."
+      - "Speed isn't the point: the regexes are cheap either way."
+      - "GradeWise deliberately does NOT zero the answer: student 10's DNS content still earns its marks. Only an answer that is nothing but instructions gets 0, and that's decided by code without an LLM call."
+      - "Structured output is just a Python object; checking it would be easy. Checking afterwards is simply too late: the model has already read the instruction."
+
+  - id: w5-q7
+    lecture: "Day 3 - Writing the Report Card: Scores, Feedback, Citations (HTML/PDF)"
+    question: "A teammate 'simplifies' render_html() to `strengths = \"\".join(f\"<li>{s}</li>\" for s in report.strengths)`. What's the bug?"
+    options:
+      - "There's no bug: strengths are written by GradeWise, not by students"
+      - "The list items need a closing </ul>"
+      - "Student text (quoted in justifications and feedback) is no longer HTML-escaped, so a <script> written in an answer could run in Asha's browser"
+      - "f-strings can't be used inside a generator expression"
+    answer: 2
+    explanations:
+      - "Strengths and justifications quote and paraphrase the student's own words, and the LLM that writes them can be steered by those words. Treat it all as untrusted."
+      - "The surrounding <ul> is added elsewhere in the template; the missing escape is the real problem."
+      - "Correct. The original wraps every string in html.escape(). Unescaped, a student's `<script>` or `<img onerror=...>` becomes live markup: that's layer 5 of the injection defence."
+      - "f-strings work fine inside generator expressions."
+
+  - id: w5-q8
+    lecture: "🧱 Day 4 - The Orchestrator: GradeWise End to End"
+    question: "`paused = grade_batch(\"cs_midterm\", sheets, thread_id=\"b1\", ...)` returns status 'paused' with a human_review payload for Q8. How do you continue the SAME batch with Asha's mark of 3?"
+    options:
+      - "`resume_batch(\"b1\", {\"overrides\": {\"Q8\": 3}, \"approved\": True})`"
+      - "`grade_batch(\"cs_midterm\", sheets, thread_id=\"b2\", auto_approve=True)`"
+      - "`app.invoke({\"overrides\": {\"Q8\": 3}}, config)` with a new input dict"
+      - "Edit the ReportCard in SQLite: the graph will notice the change"
+    answer: 0
+    explanations:
+      - "Correct. resume_batch() sends `Command(resume=decision)` to the paused thread; human_review's interrupt() returns that dict and apply_review() applies the override (clamped to 0…5)."
+      - "A new thread_id starts a brand-new batch, and auto_approve would accept the grader's 2.5 without Asha's mark."
+      - "A plain input dict starts a new run on the thread instead of answering the interrupt. Resuming needs Command(resume=...)."
+      - "Nothing is stored until after human_review: the report isn't in SQLite yet, and the graph reads its own checkpointed state, not the database."
+
+  - id: w5-q9
+    lecture: "🧱 Day 4 - The Orchestrator: GradeWise End to End"
+    question: "Why do the orchestrator's `graded` and `reports` fields use a dict keyed by student with the `merge_by_student` reducer, rather than a list with `operator.add`?"
+    options:
+      - "Dicts are faster to serialise than lists"
+      - "A node that re-runs after a restart overwrites its own student's entry instead of appending a duplicate, so every step is idempotent"
+      - "operator.add doesn't work with Send"
+      - "So the students are always sorted alphabetically"
+    answer: 1
+    explanations:
+      - "Both serialise the same way; speed isn't the reason."
+      - "Correct. With checkpoints and interrupts, nodes can run again (e.g. human_review re-runs from the top on resume). Keying by student makes a repeated write harmless."
+      - "operator.add works fine with Send: the grading graph's `results` uses exactly that. It's just not idempotent."
+      - "The order comes from `inputs` (the order the students were given), not from the dict."
+
+  - id: w5-q10
+    lecture: "Day 5 - Transcription CER/WER and Regression Tests with pytest"
+    question: "run_evals.py grades the golden set from transcripts.json (not from the PDFs) with auto_approve=True. Why is that the right design for evaluating the GRADER?"
+    options:
+      - "It's cheaper, and that's the only reason"
+      - "auto_approve=True makes the grader more accurate"
+      - "The vision model can't read the synthetic PDFs"
+      - "Perfect transcriptions mean every disagreement is the grader's, and auto-approval keeps a reviewer's overrides from hiding the grader's own marks"
+    answer: 3
+    explanations:
+      - "It is cheaper, but the main reason is isolation: you want to measure one component at a time."
+      - "Auto-approval doesn't change a single mark the grader proposes; it only answers the review interrupts automatically."
+      - "The vision model reads them fine (week 4 measured its CER); that's a separate evaluation."
+      - "Correct. Transcription errors are measured separately with CER/WER; mixing them in would blur the grading metrics. And an evaluation must score the grader's marks, not a teacher's corrections of them."

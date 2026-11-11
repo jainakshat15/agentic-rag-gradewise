@@ -1,0 +1,106 @@
+week: 6
+title: "Ship It: App, Docker, Deployment & Wrap-Up"
+questions:
+  - id: w6-q1
+    lecture: "Day 1 - Production Architecture: API, Workers, UI, Storage"
+    question: "Why does GradeWise's `POST /batches` return `202 Accepted` with a `batch_id` straight away, instead of grading the class and returning the report cards in the response?"
+    options:
+      - "Because FastAPI can't return large JSON responses"
+      - "Grading takes minutes and can pause for a teacher; a request must answer in milliseconds, so the API starts a background job and the client follows it by ID"
+      - "So the API can grade each student in a separate HTTP request"
+      - "Because report cards are PDFs, which can't be sent in a POST response"
+    answer: 1
+    explanations:
+      - "FastAPI happily returns large JSON. The problem is time, not size."
+      - "Correct. Browsers and proxies time out long requests, a refresh would throw the work away, and an interrupt can't wait an hour inside a request. So the request only starts the work; status, events and review use the batch ID."
+      - "One batch grades every student, in parallel, in one background job. The client never sends a request per student."
+      - "Report cards are served later by GET /reports/... as JSON, HTML or PDF. The response format isn't the reason."
+
+  - id: w6-q2
+    lecture: "Day 1 - FastAPI Backend: Upload, Run and Status Endpoints"
+    question: |-
+      What's the bug? A teammate adds this route to the GradeWise API:
+
+      @router.post("/knowledge-bases/{name}/reindex")
+      async def reindex(name: str):
+          report = ingest(folder_for(name), collection=name)   # slow, synchronous: ~40 s
+          return {"chunks": report.chunks_total}
+    options:
+      - "Nothing: async routes are always faster"
+      - "`ingest()` should be awaited"
+      - "A slow synchronous call inside an `async def` route blocks the event loop, so every other request (health checks, the SSE streams) freezes for 40 seconds. Make it a plain `def` route, which FastAPI runs in a thread pool"
+      - "Routes can't take a path parameter and call ingest() in the same function"
+    answer: 2
+    explanations:
+      - "`async def` only helps when the body awaits non-blocking I/O. A blocking call inside it is the worst of both worlds."
+      - "`ingest()` is an ordinary function, not a coroutine: awaiting it is a TypeError."
+      - "Correct. That's why main.py uses plain `def` for everything that does real work, and `async def` only for the SSE stream, which awaits `asyncio.sleep()` between polls."
+      - "Path parameters and ordinary function calls mix freely; the upload route does exactly that."
+
+  - id: w6-q3
+    lecture: "Day 3 - Streaming Grading Progress from LangGraph to the UI"
+    question: "A teacher's laptop loses Wi-Fi for ten seconds while she watches a batch. Her browser reconnects to `GET /batches/{id}/events` with the header `Last-Event-ID: 41`. What does GradeWise send?"
+    options:
+      - "Events 42 onwards (replayed from the job's stored, numbered event list), then new ones as they happen, and a final `event: end` when the batch stops"
+      - "Every event from number 1 again, so the dashboard has to deduplicate"
+      - "Only events that happen from now on; whatever happened during the outage is lost"
+      - "An error, because SSE connections can't be resumed"
+    answer: 0
+    explanations:
+      - "Correct. BatchJob numbers and stores every on_event() call; the endpoint calls events_after(41) and keeps going until the batch is paused, done or failed."
+      - "That's what you get with no Last-Event-ID (or after=0). The header exists precisely to avoid a full replay."
+      - "That would be true if the endpoint streamed straight from the running graph. GradeWise stores events first, so nothing is lost."
+      - "Resuming is a built-in part of SSE: browsers send Last-Event-ID on reconnect automatically."
+
+  - id: w6-q4
+    lecture: "Day 4 - One Command to Run It All: Docker Compose"
+    question: |-
+      A teammate "simplifies" the Dockerfile to:
+
+      FROM python:3.12-slim
+      COPY . /app
+      WORKDIR /app
+      RUN uv sync --frozen --no-dev
+
+      Besides sending far more files, what changes for everyday development?
+    options:
+      - "Nothing: Docker caches every RUN step regardless of order"
+      - "Every code change invalidates the COPY layer, so `uv sync` re-installs every dependency on every rebuild: minutes instead of seconds"
+      - "The image can no longer be run as a non-root user"
+      - "uv can no longer find uv.lock"
+    answer: 1
+    explanations:
+      - "A step is reused only if it and every step before it are unchanged. Changing any copied file re-runs everything after the COPY."
+      - "Correct. GradeWise copies pyproject.toml and uv.lock first, installs dependencies, and only then copies the code, so editing gradewise/ reuses the slow dependency layer."
+      - "User handling is a separate instruction and still works; it's just missing from this version."
+      - "uv.lock is still copied (along with everything else), so uv finds it fine."
+
+  - id: w6-q5
+    lecture: "Day 4 - One Command to Run It All: Docker Compose"
+    question: "In `docker-compose.yml`, someone sets the ui service's `API_URL` to `http://localhost:8000`. The API container is healthy, but the dashboard says \"Can't reach the GradeWise API\". Why?"
+    options:
+      - "Streamlit can't make HTTP requests from inside a container"
+      - "Port 8000 must be published again on the ui service"
+      - "Inside the ui container, localhost is the ui container itself. On Compose's network the API is reachable by its service name: `http://api:8000`"
+      - "API_URL is ignored; the dashboard always uses http://api:8000"
+    answer: 2
+    explanations:
+      - "It can: gradewise/ui/client.py is plain httpx, and works the same in a container."
+      - "Publishing ports maps them to your host machine. Container-to-container traffic doesn't use them."
+      - "Correct. Each container has its own network namespace. Compose gives every service a DNS name on a shared network, which is why the real file says API_URL: http://api:8000."
+      - "client.py reads API_URL from the environment (default http://localhost:8000). That's exactly why the wrong value breaks it."
+
+  - id: w6-q6
+    lecture: "Day 5 - Responsible AI Grading: Fairness, Transparency, Privacy"
+    question: "A head of department likes GradeWise and asks you to switch on \"Auto-approve every review\" for the end-of-year exam, \"to save the teachers time\". What's the most responsible answer?"
+    options:
+      - "Agree: the guardrails already clamp marks to the maximum, so nothing can go wrong"
+      - "Switch off flagging entirely, so there's nothing to approve"
+      - "Agree, but only for students whose average confidence is above 0.5"
+      - "Decline for a high-stakes exam: flags are exactly the answers the system is unsure about (illegible text, low grader confidence, injection attempts). Offer to reduce the workload safely instead: tune thresholds with golden-set data and track override rates"
+    answer: 3
+    explanations:
+      - "Clamping stops impossible marks, not wrong ones. A misread answer can be marked confidently wrong within the maximum."
+      - "That removes the safety net and hides the uncertainty instead of resolving it (handbook principle 9: unclear answers are referred, never guessed)."
+      - "Averaging hides the individual answers that were flagged, and a student's final mark would still include unreviewed uncertain marks."
+      - "Correct. Auto-approve exists for demos and is off by default on purpose. Human oversight of uncertain marks is the core safety property; the responsible way to save time is to make flags fewer and better, with evidence."

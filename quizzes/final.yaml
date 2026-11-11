@@ -1,0 +1,323 @@
+week: final
+title: "Final Quiz: Agentic RAG with LangChain & LangGraph, all six weeks"
+questions:
+  - id: final-q1
+    lecture: "Week 1 Day 2 - The LangChain 1.x Ecosystem: Core, LangGraph, LangSmith, Deep Agents"
+    question: "GradeWise never writes a model name like a specific GPT or Claude version in its code; every lab gets models from `gradewise.models` (`chat_model()`, `grading_model()`...), which read `.env`. What is the main benefit?"
+    options:
+      - "Models created this way are cheaper per token"
+      - "You can switch provider or model (OpenAI, Claude, Gemini, a local Ollama model) by editing one line of `.env`, without touching a notebook or the package"
+      - "It stops the model from seeing your API key"
+      - "It makes the model's answers deterministic"
+    answer: 1
+    explanations:
+      - "The price depends on the model you pick, not on how you create it."
+      - "Correct. One factory, one settings file: that's why the same course runs on four providers, and why `BUDGET_MODE` can swap every step to the cheap model at once."
+      - "The model never sees your key either way: it's sent to the provider's API as authentication, not as part of the prompt."
+      - "Determinism is about sampling (temperature, seeds) and the provider, not about where the model name is stored."
+
+  - id: final-q2
+    lecture: "Week 1 Day 2 - First Calls with `init_chat_model`: Invoke, Stream, Batch, Swap Providers"
+    question: "You switch a long answer from `llm.invoke(...)` to `for chunk in llm.stream(...)`. What changes?"
+    options:
+      - "The answer costs fewer tokens, because chunks are compressed"
+      - "The model writes a shorter answer"
+      - "The answer becomes structured JSON"
+      - "The first words appear almost at once (lower time to first token), but the total tokens, cost and finishing time stay about the same"
+    answer: 3
+    explanations:
+      - "Streaming sends the same tokens, just as they're generated. The bill is the same."
+      - "The model generates the same answer; streaming doesn't change what it writes."
+      - "Structured output comes from `with_structured_output()` / `response_format`, not from streaming."
+      - "Correct. Streaming is about perceived latency. Week 6 applies the same idea one level up: SSE streams GradeWise's progress so a teacher sees work happening instead of a spinner."
+
+  - id: final-q3
+    lecture: "Week 2 Day 2 - Chunking Strategies: Fixed, Recursive, Semantic, Structure-Aware"
+    question: "You raise the chunk size from about 800 to 4,000 characters, so whole units of the CS201 notes fit in a few chunks. What is the most likely effect on retrieval?"
+    options:
+      - "Better precision: bigger chunks always contain the answer"
+      - "No effect: embeddings ignore length"
+      - "Each embedding averages many topics, so a specific question (e.g. the four deadlock conditions) matches less sharply, and the chunks you do retrieve stuff the prompt with irrelevant text"
+      - "Ingestion fails, because Chroma refuses chunks over 1,000 characters"
+    answer: 2
+    explanations:
+      - "Containing the answer isn't enough: the chunk also has to be *found*, and a diluted embedding ranks lower."
+      - "One vector per chunk has to represent everything in it; the more topics, the blurrier it gets."
+      - "Correct. That's the chunk-size trade-off: too big dilutes the signal and wastes context, too small loses the surrounding meaning. Structure-aware chunking on headings is GradeWise's middle way."
+      - "Chroma stores long documents fine (embedding models have token limits, but far above 4,000 characters)."
+
+  - id: final-q4
+    lecture: "Week 2 Day 3 - Idempotent Ingestion: Hashing, De-duplication, Re-indexing"
+    question: "After ingesting the CS201 notes, you change `EMBEDDING_MODEL` in `.env` to a different model and start asking questions, without re-ingesting. What happens?"
+    options:
+      - "The queries are embedded with the new model but the stored chunks with the old one, so you get a dimension-mismatch error or, if the sizes happen to match, meaningless similarity scores"
+      - "Nothing: Chroma converts the old vectors automatically"
+      - "Retrieval gets better, because the new model is newer"
+      - "Only BM25 results change"
+    answer: 0
+    explanations:
+      - "Correct. Query and documents must be embedded by the same model. Change the model, and you re-ingest (week 2's `reset=True`), ideally into a new collection so you can compare."
+      - "Vectors from different models live in different spaces; there's no conversion between them."
+      - "A newer model can't help if the stored vectors came from the old one: the comparison itself is broken."
+      - "BM25 is keyword-based and unaffected; the problem is in the dense half of hybrid search."
+
+  - id: final-q5
+    lecture: "Week 2 Day 4 - Hybrid Search and Reranking in Practice"
+    question: "Asha searches the notes for \"SJF\" and \"Q7a\". Dense (embedding) search returns vaguely related scheduling text; BM25 nails both. Why?"
+    options:
+      - "BM25 understands the meaning of abbreviations better than embeddings"
+      - "Exact rare tokens like acronyms, codes and IDs are BM25's strength: it rewards documents containing those exact strings, while an embedding blurs them into a general topic"
+      - "Dense search is broken whenever a query is shorter than five words"
+      - "BM25 uses a larger model"
+    answer: 1
+    explanations:
+      - "BM25 understands nothing: it counts exact term matches, weighted by how rare they are. That's precisely why it works here."
+      - "Correct. That's why GradeWise fuses both rankings (reciprocal-rank fusion): dense for paraphrases, BM25 for exact identifiers."
+      - "Short queries can be harder for dense search, but there's no five-word rule. The issue is exact-match tokens."
+      - "BM25 uses no model at all: it's a scoring formula over term counts."
+
+  - id: final-q6
+    lecture: "Week 3 Day 2 - `create_agent`: Tools, Memory and Structured Responses"
+    question: "You build `agent = create_agent(model, tools, response_format=GradeResult)` and call `result = agent.invoke({\"messages\": [...]})`. Where is the validated `GradeResult`?"
+    options:
+      - "`result[\"messages\"][-1].content`, as a JSON string you parse yourself"
+      - "`agent.response_format`"
+      - "`result[\"structured_response\"]`"
+      - "It's returned instead of the state dict"
+    answer: 2
+    explanations:
+      - "The last message holds the model's final turn, but the parsed, validated object is stored separately so you don't parse anything."
+      - "That's just the schema you passed in, not the answer."
+      - "Correct. LangChain 1.x puts the parsed Pydantic object in the state under `structured_response`, alongside the full message history."
+      - "`invoke` always returns the agent's state dict; the structured response is one key in it."
+
+  - id: final-q7
+    lecture: "Week 3 Day 3 - Your First StateGraph with Conditional Routing and Loops"
+    question: |-
+      What happens when this graph reaches the check node and the exam still has problems?
+
+      def route(state):
+          return "retry" if state["problems"] else "ok"
+
+      builder.add_conditional_edges("check", route, {"ok": "store", "fail": "repair"})
+    options:
+      - "It raises an error at runtime: \"retry\" is not a key in the path map, so LangGraph doesn't know which node to run"
+      - "It goes to repair, because \"retry\" and \"fail\" both mean something went wrong"
+      - "It goes to END, the default for unknown labels"
+      - "It goes to store, the first entry in the map"
+    answer: 0
+    explanations:
+      - "Correct. The routing function's return values must match the path map's keys exactly. A Literal return type (or using node names directly) makes this kind of typo visible early."
+      - "LangGraph doesn't interpret labels; it looks them up exactly."
+      - "There's no silent default: an unknown label is a bug, and LangGraph treats it as one."
+      - "Dict order doesn't matter: the label must match a key."
+
+  - id: final-q8
+    lecture: "Week 3 Day 5 - Exam Understanding v2: Extract → Validate → Retry → Admin Approval → Store"
+    question: "The week 6 API runs the exam graph with the thread ID `f\"exam-{exam_id}\"` rather than a fresh `uuid4()` per upload. Why does that matter for Asha?"
+    options:
+      - "UUIDs are too long for SQLite"
+      - "A deterministic thread ID lets `POST /exams/{id}/approve` find the paused graph in the SQLite checkpointer from the exam ID alone, even after the API has restarted"
+      - "It makes the extraction faster, because LangGraph caches by thread ID"
+      - "It stops two exams from having the same questions"
+    answer: 1
+    explanations:
+      - "SQLite stores UUIDs without trouble."
+      - "Correct. The interrupt's state lives in the checkpointer under its thread ID. If the ID were random and only held in memory, a restart between upload and approval would orphan the paused exam."
+      - "Thread IDs identify saved state; they don't cache model calls."
+      - "Thread IDs say nothing about the exam's content."
+
+  - id: final-q9
+    lecture: "Week 4 Day 1 - The Agentic RAG Spectrum: Adaptive, Corrective and Self-RAG"
+    question: "Which agentic RAG pattern first decides whether a question needs retrieval at all (and how much), answering simple questions directly and sending complex ones through multi-step retrieval?"
+    options:
+      - "Corrective RAG (CRAG)"
+      - "Self-RAG"
+      - "Naive RAG"
+      - "Adaptive RAG"
+    answer: 3
+    explanations:
+      - "CRAG grades the retrieved documents and corrects course (rewrite, search elsewhere) when they're poor."
+      - "Self-RAG has the model critique its own retrieval and generation with reflection steps."
+      - "Naive RAG always retrieves once, whatever the question."
+      - "Correct. Adaptive RAG routes by query complexity, which saves cost and latency on easy questions."
+
+  - id: final-q10
+    lecture: "Week 4 Day 4 - Confidence Scores, Illegible Flags and Double-Pass Verification"
+    question: "To be extra safe, Asha raises the transcription-confidence threshold for review from 0.7 to 0.95. What should she expect?"
+    options:
+      - "Better transcriptions, because the vision model tries harder"
+      - "No change: confidence scores are always above 0.95"
+      - "Far more answers paused for review_transcription: fewer misreads slip through to grading, at the price of much more of her time"
+      - "Grading becomes cheaper"
+    answer: 2
+    explanations:
+      - "The threshold doesn't change what the model reads; it changes what gets sent to a human."
+      - "Real confidence scores vary a lot, especially for messy handwriting; that's the point of having them."
+      - "Correct. Thresholds trade risk for workload. The right value comes from data: measure CER against confidence on a golden set and pick the point where reviews catch most errors without drowning the teacher."
+      - "It doesn't change grading cost (and the extra reviews cost teacher time, which is the scarcest resource of all)."
+
+  - id: final-q11
+    lecture: "Week 5 Day 2 - Reliable Marks: Guardrails, Self-Consistency and Prompt-Injection Defense"
+    question: "The grading model returns a `GradeResult` whose `awarded_marks` is 4, but its criteria add up to 3.5 on a 4-mark question. What does GradeWise do, and why?"
+    options:
+      - "Recomputes the total from the (clamped) criteria in code, so the mark always equals the sum of its justified parts and never exceeds the maximum"
+      - "Keeps 4: the model's total is its final judgement"
+      - "Re-asks the model until the numbers match"
+      - "Averages the two: 3.75"
+    answer: 0
+    explanations:
+      - "Correct. Numbers come from code: the guardrails clamp every criterion to its maximum and the total is recomputed, so each mark is traceable to criterion justifications and evidence."
+      - "A total that disagrees with its own breakdown can't be explained to a student or a moderator."
+      - "Retrying costs money and may never converge. Arithmetic is code's job."
+      - "Averaging produces a mark that matches neither the breakdown nor the model's claim."
+
+  - id: final-q12
+    lecture: "Week 5 Day 5 - Grader vs Human: Golden Set, MAE and Quadratic Weighted Kappa"
+    question: "Your grader reaches QWK 0.86 on the 150-answer golden set. You then edit the prompt again and again, re-running on the same 150 answers, until it reaches 0.97. What's the problem with reporting 0.97?"
+    options:
+      - "QWK can't go above 0.9"
+      - "You've tuned the prompt to these particular answers (overfitting), so 0.97 overstates how it will do on next term's scripts. Hold some labelled answers back, or collect fresh ones, for the final number"
+      - "Nothing: more iterations always means a better grader"
+      - "QWK should be replaced by exact agreement"
+    answer: 1
+    explanations:
+      - "QWK ranges up to 1.0 (perfect agreement)."
+      - "Correct. A golden set you optimise against stops being an independent test. The same rule as train/test splits in machine learning: tune on one set, report on another."
+      - "Iterating against the test set improves the score on that set, not necessarily the grader."
+      - "The metric isn't the issue; any metric is inflated by tuning on the data you report it on."
+
+  - id: final-q13
+    lecture: "Week 5 Day 3 - Storing Reports and the \"Chat With Results\" Agent"
+    question: "Asha asks the results agent \"What was the class average on Q4b?\". Why does GradeWise answer through a `class_statistics` tool instead of putting all the report cards in the prompt and letting the model work it out?"
+    options:
+      - "Models aren't allowed to do arithmetic"
+      - "Report cards are confidential and can never be shown to a model"
+      - "Tools are faster to write than prompts"
+      - "Exact numbers should come from code: the tool computes the mean precisely and cheaply; the model only chooses the tool and explains the result in words"
+    answer: 3
+    explanations:
+      - "They're allowed; they're just unreliable at it over many numbers, and a wrong average presented confidently is worse than none."
+      - "The agent does read individual reports through another tool when needed; confidentiality is about who can use the agent, not the model."
+      - "Speed of writing isn't the reason; correctness and cost are."
+      - "Correct. 'Numbers from code, words from the model' runs through the whole course: the class report endpoint in week 6 follows the same rule."
+
+  - id: final-q14
+    lecture: "Week 6 Day 1 - FastAPI Backend: Upload, Run and Status Endpoints"
+    question: |-
+      What's the bug in this "safe" path check?
+
+      def report_path(student_id: str) -> Path:
+          if ".." in student_id:
+              raise ValueError("nice try")
+          return REPORTS_DIR / f"{student_id}.html"
+    options:
+      - "There is none: blocking \"..\" stops every path trick"
+      - "It should use os.path.join instead of /"
+      - "A deny-list misses other tricks: an absolute path such as \"/etc/passwd\" or \"C:/secrets\" makes `REPORTS_DIR / ...` jump out of the folder entirely. Allow-list instead, like GradeWise's `safe_name()` (letters, digits, - and _ only)"
+      - "f-strings can't be used in paths"
+    answer: 2
+    explanations:
+      - "Joining a pathlib path with an absolute path discards the left side, so no '..' is needed to escape."
+      - "os.path.join has exactly the same absolute-path behaviour."
+      - "Correct. Allow-lists say what IS valid, so tricks you didn't think of are rejected too. The API answers such names with a friendly 422."
+      - "f-strings are fine; the problem is what the user can put in them."
+
+  - id: final-q15
+    lecture: "Week 6 Day 1 - Production Architecture: API, Workers, UI, Storage"
+    question: "The API process restarts while a batch is paused for Asha's review. What is lost, and what isn't?"
+    options:
+      - "The in-memory job list (so GET /batches/{id} answers 404), but not the work: the orchestrator's checkpoints are in SQLite, so the paused thread can still be resumed by its thread ID (the batch ID)"
+      - "Everything: the batch must be graded again from scratch"
+      - "Nothing: the job registry is stored in SQLite"
+      - "The report cards of students who were already finished are deleted"
+    answer: 0
+    explanations:
+      - "Correct. That split is deliberate for a course-sized app; production moves the job list to Redis or Postgres and the work to queue workers, so a restart loses nothing at all."
+      - "The LangGraph checkpoints survive, so no grading needs to be repeated."
+      - "The registry is a Python dict in the API process; jobs.py says so, and explains the upgrade path."
+      - "Report cards are written to the database and disk as each student finishes; a restart doesn't touch them."
+
+  - id: final-q16
+    lecture: "Week 6 Day 2 - Streamlit Admin Dashboard: Knowledge Bases, Exams, Batches"
+    question: |-
+      A learner's Streamlit page forgets which batch it's following every time Asha clicks anything:
+
+      batch_id = None
+      if st.button("Start grading"):
+          batch_id = client.post("/batches", data=form)["batch_id"]
+      if batch_id:
+          live_progress(batch_id)
+
+      Why, and what's the fix?
+    options:
+      - "st.button is broken in multipage apps; use a form"
+      - "The API forgets batches after one request"
+      - "live_progress() deletes the batch ID when it finishes"
+      - "Streamlit re-runs the whole script on every interaction, so `batch_id` is reset to None on the next click. Keep it in `st.session_state[\"batch_id\"]`, as the real Grade page does"
+    answer: 3
+    explanations:
+      - "Buttons work fine; a form would only batch the inputs, the variable would still reset."
+      - "The API keeps every batch in its job registry for as long as it runs."
+      - "live_progress() only reads the stream; it doesn't touch your variables."
+      - "Correct. Plain variables live for one run; session_state lives for the browser session."
+
+  - id: final-q17
+    lecture: "Week 6 Day 4 - One Command to Run It All: Docker Compose"
+    question: "Why does GradeWise's Dockerfile set `API_HOST=0.0.0.0`, when on your laptop the API listens on 127.0.0.1?"
+    options:
+      - "0.0.0.0 is faster than 127.0.0.1"
+      - "Inside a container, 127.0.0.1 means the container itself, so nothing outside it (not even the dashboard container) could connect. 0.0.0.0 listens on every network interface"
+      - "Docker refuses to start processes bound to 127.0.0.1"
+      - "It hides the API from the internet"
+    answer: 1
+    explanations:
+      - "Both are just addresses to bind to; neither is faster."
+      - "Correct. On your laptop, 127.0.0.1 is a safe default (only you can reach it); in a container, port publishing and Compose networking need the server to listen on the container's network interface."
+      - "Docker starts it happily; it's just unreachable from outside the container."
+      - "The opposite: 0.0.0.0 makes it reachable. Exposure to the internet is controlled by published ports and your host's firewall."
+
+  - id: final-q18
+    lecture: "Week 6 Day 4 - Deploying GradeWise (Render / Fly.io / HF Spaces)"
+    question: "A teammate's Dockerfile copies `.env` in, runs a setup step, then `RUN rm .env` \"so the key isn't in the image\". Is the key safe?"
+    options:
+      - "Yes: deleted files are gone from the image"
+      - "Yes, as long as the image is private"
+      - "No: every instruction creates a layer, and the layer that copied `.env` still contains it. Anyone with the image can extract it. Keep `.env` in `.dockerignore`, pass keys at run time, and revoke any key that was ever baked in"
+      - "No, but only on Windows"
+    answer: 2
+    explanations:
+      - "The later layer only hides the file; the earlier layer still ships with the image."
+      - "Private images get pulled to laptops, CI runners and hosts, and get made public by accident. Treat a baked-in key as leaked."
+      - "Correct. That's why GradeWise's .dockerignore excludes .env, and compose's env_file and each host's secrets screen supply keys when the container starts."
+      - "Layers work the same on every platform."
+
+  - id: final-q19
+    lecture: "Week 6 Day 5 - Responsible AI Grading: Fairness, Transparency, Privacy"
+    question: "Over the summer, your provider quietly updates the model behind the name in your `SMART_MODEL` setting. What should GradeWise's operators do before the new term's marking?"
+    options:
+      - "Pin an exact, dated model version where the provider offers one, and re-run the golden-set evaluation (QWK, MAE, per-subgroup checks) before grading real scripts with any new model"
+      - "Nothing: a newer model is always a better grader"
+      - "Switch on auto-approve, since newer models are more confident"
+      - "Delete last term's report cards so the new marks are comparable"
+    answer: 0
+    explanations:
+      - "Correct. Model drift is one of the explicit limits of AI grading. A pinned version plus a regression check (week 5's pytest quality gate) turns a silent change into a measured decision."
+      - "Newer models can be better on average and still mark differently: harsher on bare lists, more lenient on wording. For grading, 'different' is a fairness problem."
+      - "Confidence isn't accuracy, and auto-approve removes the human check exactly when behaviour may have changed."
+      - "Old reports are evidence, not noise; retention is decided by policy, not by convenience."
+
+  - id: final-q20
+    lecture: "Week 6 Day 5 - Capstone Showcase: From Upload to Report Card"
+    question: "Handbook principle 9 says unclear or illegible answers must not be guessed at, but referred for review instead of being awarded zero. Which part of GradeWise implements it most directly?"
+    options:
+      - "The examiner prompt asking the model to be careful"
+      - "BM25 retrieval of the course notes"
+      - "The PDF report card"
+      - "Low transcription confidence or illegible spans make the orchestrator pause at a `review_transcription` interrupt, so a teacher types what the student wrote (or confirms the blank) before anything is graded"
+    answer: 3
+    explanations:
+      - "A prompt can ask, but a model that never sees the illegible words can only guess. The safeguard has to be structural."
+      - "Retrieval finds evidence in the notes; it can't recover what a student wrote."
+      - "The report card shows the outcome; it doesn't decide how uncertain answers are handled."
+      - "Correct. Confidence scores (week 4) + interrupts (week 3) + the review queue (week 6) together turn principle 9 into a guarantee: uncertainty is routed to a human, never silently scored."

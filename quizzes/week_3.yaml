@@ -1,0 +1,152 @@
+week: 3
+title: "Agents & LangGraph"
+questions:
+  - id: w3-q1
+    lecture: "Day 1 - What Is an Agent? Workflows vs Agents and the Core Patterns"
+    question: "According to Anthropic's 'Building Effective Agents', what is the key difference between a workflow and an agent?"
+    options:
+      - "A workflow uses one LLM call; an agent uses several"
+      - "In a workflow, your code defines the steps in advance; in an agent, the LLM dynamically decides its own steps and tool use"
+      - "Agents use tools, workflows never do"
+      - "Workflows are built with LangChain, agents with LangGraph"
+    answer: 1
+    explanations:
+      - "Not quite: a workflow such as prompt chaining or parallelisation often makes many LLM calls. The number of calls isn't the distinction."
+      - "Correct! Who decides the path is the difference: predefined code paths (workflow) versus the model directing its own process in a loop (agent)."
+      - "Workflow steps can call tools too. What matters is whether the path is fixed by your code or chosen by the model."
+      - "Both can be built with either library: create_agent itself returns a LangGraph graph, and LangGraph is great for workflows."
+
+  - id: w3-q2
+    lecture: "Day 1 - What Is an Agent? Workflows vs Agents and the Core Patterns"
+    question: "GradeWise extracts an exam, checks the marks add up, and if not, sends the list of problems back to the model to fix. Which pattern is this?"
+    options:
+      - "Routing"
+      - "Parallelisation (voting)"
+      - "Evaluator-optimiser"
+      - "Orchestrator-workers"
+    answer: 2
+    explanations:
+      - "Routing classifies an input and sends it down one of several paths; nothing is being generated, checked and improved in a loop."
+      - "Voting runs the same task several times in parallel and combines the answers. Here we run one attempt at a time, each informed by the last."
+      - "Correct! One step generates (extract), another evaluates against clear criteria (validate) and the feedback drives the next attempt, until it passes or we run out of tries."
+      - "Orchestrator-workers splits a task into sub-tasks decided at run time and hands them to workers. That's how week 5 fans out grading, not how the extractor self-corrects."
+
+  - id: w3-q3
+    lecture: "Day 1 - The ReAct Loop and Designing Great Tools"
+    question: "Your agent's tool `lookup(x)` raises a KeyError when the model passes an unknown question ID, and the run crashes. What's the best fix?"
+    options:
+      - "Wrap the whole agent call in try/except and retry the run from scratch"
+      - "Raise the recursion limit so the agent has more chances"
+      - "Tell the model in the system prompt never to make mistakes"
+      - "Rename it to get_rubric(question_id), document valid IDs in the docstring, and return a helpful message like \"No question 'Q30'. Valid IDs: Q1, Q2a, …\" instead of raising"
+    answer: 3
+    explanations:
+      - "Retrying the whole run is expensive and the model has learned nothing, so it may make the same mistake again."
+      - "The recursion limit caps graph steps; it doesn't help a tool that crashes on the first bad input."
+      - "Prompts reduce mistakes but never eliminate them. Tools must be designed to handle bad input gracefully."
+      - "Correct! A specific name, a docstring with examples, typed arguments and errors returned as text let the model read the hint and correct itself on the next step."
+
+  - id: w3-q4
+    lecture: "Day 2 - `create_agent`: Tools, Memory and Structured Responses"
+    question: "You build `agent = create_agent(model, tools, checkpointer=InMemorySaver())`, then call `agent.invoke({\"messages\": [...]})` twice. The agent doesn't remember the first message. Why?"
+    options:
+      - "No thread_id was passed in the config, so there is nowhere to file and look up the conversation"
+      - "InMemorySaver only works with SqliteSaver"
+      - "create_agent never has memory; you must append previous messages yourself"
+      - "The model's temperature is too high"
+    answer: 0
+    explanations:
+      - "Correct! A checkpointer stores state per thread. Call invoke(..., {\"configurable\": {\"thread_id\": \"asha\"}}) both times; LangGraph will actually raise an error asking for a thread_id when a checkpointer is set without one."
+      - "InMemorySaver is a complete checkpointer on its own; SqliteSaver is just a persistent alternative."
+      - "It does: a checkpointer plus a thread_id gives it short-term memory, and you then send only the new message each turn."
+      - "Temperature affects randomness, not whether earlier messages are included in the next call."
+
+  - id: w3-q5
+    lecture: "Day 2 - Middleware: Logging, Summarization, Retries, Limits, PII, Human Approval"
+    question: "An agent occasionally gets stuck calling the same tool over and over, running up your bill. Which single change gives you a guaranteed worst case?"
+    options:
+      - "SummarizationMiddleware"
+      - "PIIMiddleware"
+      - "ModelCallLimitMiddleware(run_limit=6)"
+      - "A longer system prompt explaining when to stop"
+    answer: 2
+    explanations:
+      - "Summarisation keeps the history short, which saves tokens per call, but doesn't stop an agent from making call after call."
+      - "PII middleware redacts personal data. Useful, but unrelated to looping."
+      - "Correct! It caps model calls per run (or per thread with thread_limit), ending the run gracefully (exit_behavior='end') once the limit is hit. ToolCallLimitMiddleware can cap one specific tool too."
+      - "Better instructions help, but they're a request, not a guarantee. Limits are enforced by code."
+
+  - id: w3-q6
+    lecture: "Day 3 - LangGraph Concepts: State, Nodes, Edges, Reducers, Supersteps"
+    question: "Two nodes both run straight after START and each returns {\"comments\": [\"...\"]}. The state is `class S(TypedDict): comments: list[str]`. What happens?"
+    options:
+      - "The second node's comment overwrites the first"
+      - "LangGraph raises InvalidUpdateError: a plain key can receive only one value per step, so you need a reducer such as Annotated[list[str], operator.add]"
+      - "Both comments are appended automatically, because the value is a list"
+      - "The first node to finish wins and the other update is silently dropped"
+    answer: 1
+    explanations:
+      - "LangGraph refuses to guess which update should win when both arrive in the same superstep."
+      - "Correct! Both nodes run in the same superstep, and without a reducer LangGraph can't merge their updates. Annotated[list[str], operator.add] tells it to concatenate them."
+      - "Being a list doesn't imply a merge rule. Without a reducer, the default is overwrite, which is ambiguous for two simultaneous writes."
+      - "There is no race: updates within a superstep are applied together at the end of it, which is exactly why a conflict is detected."
+
+  - id: w3-q7
+    lecture: "Day 3 - Your First StateGraph with Conditional Routing and Loops"
+    question: "What's the bug in this node?\n\ndef add_comment(state):\n    state[\"log\"].append(\"checked ✅\")\n    return state\n\n(`log` is declared as Annotated[list[str], operator.add].)"
+    options:
+      - "Nothing: this is the recommended way to update state"
+      - "It should return None instead of state"
+      - "Nodes can't read lists from the state"
+      - "It mutates the state in place and returns the WHOLE state, so the reducer adds the entire log again and every entry is duplicated. Return only the change: {\"log\": [\"checked ✅\"]}"
+    answer: 3
+    explanations:
+      - "Mutating state in place and returning all of it are the two classic LangGraph mistakes."
+      - "Returning None means 'no update', so the in-place append may be lost; the node should return a partial update."
+      - "Nodes can read anything in the state; the problem is how this one writes."
+      - "Correct! Nodes return partial updates. With operator.add, returning the full log appends a copy of it to itself."
+
+  - id: w3-q8
+    lecture: "Day 4 - Parallel Map-Reduce with `Send`"
+    question: "GradeWise must grade 15 questions in parallel and then sum the marks. The number of questions varies by exam. Which LangGraph feature fits?"
+    options:
+      - "A conditional edge from START that returns [Send(\"grade_question\", {...}) for each question], with a reducer on the results key to fan back in"
+      - "Fifteen add_edge calls from START, one per question"
+      - "A loop: grade one question, route back, grade the next"
+      - "A subgraph per question"
+    answer: 0
+    explanations:
+      - "Correct! Send creates one task per item at run time, all in the same superstep, and a reducer such as Annotated[list, operator.add] collects every result for the summing node."
+      - "Static edges fix the number of branches when you build the graph, but the number of questions changes per exam."
+      - "That works, but runs one question at a time: 15 times slower than fanning out."
+      - "Subgraphs organise code; they don't, by themselves, create a dynamic number of parallel tasks."
+
+  - id: w3-q9
+    lecture: "Day 4 - Checkpointers and Human-in-the-Loop with `interrupt()`"
+    question: "In admin_review, a developer saves the exam to the database and THEN calls decision = interrupt(...). After Asha resumes with Command(resume={\"approved\": True}), the exam is saved twice. Why?"
+    options:
+      - "Command(resume=...) always runs the whole graph again from START"
+      - "SqliteSaver writes every row twice"
+      - "On resume, LangGraph re-runs the interrupted node from the top, and interrupt() then returns Asha's answer. So code before interrupt() runs again: keep side effects after it (or in a later node like store)"
+      - "interrupt() can only be used with InMemorySaver"
+    answer: 2
+    explanations:
+      - "Only the interrupted node re-runs; earlier nodes are restored from the checkpoint, not executed again."
+      - "The checkpointer saves graph state, not your database rows. The duplicate comes from your code running twice."
+      - "Correct! That's why gradewise/exam/graph.py has a ⚠️ comment above interrupt() and does all saving in the separate store node."
+      - "interrupt() works with any checkpointer; it simply needs one."
+
+  - id: w3-q10
+    lecture: "Day 5 - Exam Understanding v2: Extract → Validate → Retry → Admin Approval → Store"
+    question: "The extraction still has problems after max_attempts tries. What does GradeWise's exam graph do, and why?"
+    options:
+      - "Raises an error and discards the extraction, so nothing flawed is ever seen"
+      - "Sends the exam to admin_review anyway, WITH the list of problems, so a human decides; nothing is stored unless Asha approves"
+      - "Stores the best attempt automatically and logs a warning"
+      - "Keeps retrying until the problems disappear"
+    answer: 1
+    explanations:
+      - "Throwing away the work wastes the model calls already paid for, and Asha could often fix the problem in seconds."
+      - "Correct! after_validate routes to admin_review when the exam is clean OR out of tries. A human always decides, and the store node only runs on approval."
+      - "Silently saving a flawed exam would mean grading students against wrong criteria: exactly what the human review exists to prevent."
+      - "An unbounded loop could cost a fortune and never end. The attempts / max_attempts counter in the state guarantees an upper bound."

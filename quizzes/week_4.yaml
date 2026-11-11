@@ -1,0 +1,152 @@
+week: 4
+title: "Agentic RAG & Reading Handwriting"
+questions:
+  - id: w4-q1
+    lecture: "Day 1 - The Agentic RAG Spectrum: Adaptive, Corrective and Self-RAG"
+    question: "A RAG system first grades the retrieved chunks for relevance and, if they are not relevant, rewrites the query and searches again. Which pattern is this?"
+    options:
+      - "Adaptive RAG"
+      - "Corrective RAG (CRAG)"
+      - "Self-RAG"
+      - "Plain 2-step RAG"
+    answer: 1
+    explanations:
+      - "Adaptive RAG decides up front WHETHER (and how much) to retrieve, based on the question. It doesn't grade what came back."
+      - "Correct. Grading the retrieved documents and correcting a bad search (by rewriting the query or using another source) is the defining move of Corrective RAG."
+      - "Self-RAG reflects on the model's own ANSWER (is each claim supported by the passages?), not mainly on the search results."
+      - "Plain 2-step RAG retrieves once and answers with whatever came back: no grading, no retry."
+
+  - id: w4-q2
+    lecture: "Day 1 - Building the Agentic RAG Graph: Retrieve, Grade, Rewrite, Answer"
+    question: "In gradewise/rag/agentic_rag.py, why does grade_documents check `state.get(\"rewrites\", 0) >= max_rewrites` before calling the grader model?"
+    options:
+      - "To save one LLM call on the very first retrieval"
+      - "Because the grader model can only be called once per question"
+      - "To stop a question the notes can't answer from looping between rewrite and retrieve forever"
+      - "To make sure the original question is always used for retrieval"
+    answer: 2
+    explanations:
+      - "On the first retrieval rewrites is 0, so the check doesn't skip anything there."
+      - "There is no such limit: the grader runs after every retrieval until the cap is reached."
+      - "Correct. If the notes simply don't cover a topic, the grader keeps saying 'no'. The cap sends the graph to generate_answer, which can honestly say it doesn't know, instead of burning tokens until the recursion limit."
+      - "Rewrites deliberately replace the search query. generate_answer uses the original question, but that's unrelated to this check."
+
+  - id: w4-q3
+    lecture: "Day 1 - Building the Agentic RAG Graph: Retrieve, Grade, Rewrite, Answer"
+    question: "The retriever tool is declared with `@tool(response_format=\"content_and_artifact\")` and returns `(format_context(docs), docs)`. What does that achieve?"
+    options:
+      - "The model sees the formatted, citable text, while our code keeps the original Document objects for citations and evaluation"
+      - "The documents are cached so the retriever is never called twice"
+      - "The tool returns structured JSON that the model must parse"
+      - "It hides the documents from the model to prevent prompt injection"
+    answer: 0
+    explanations:
+      - "Correct. The ToolMessage's content (what the model reads) is the formatted text; its .artifact holds the real Documents, which run_agentic_rag returns for citations."
+      - "No caching is involved; the retriever runs on every tool call."
+      - "The content is plain text with <source> tags, not JSON for the model to parse."
+      - "The model does see the passages (it has to, to answer). Injection is handled by tagging them as data in the prompt."
+
+  - id: w4-q4
+    lecture: "🧱 Day 2 - The GradeWise Evidence Retriever for Grading"
+    question: "Why does find_evidence() build its main search queries from the question text, reference topics and marking criteria, giving the student's answer only a small weight?"
+    options:
+      - "Because student answers are usually too short to embed"
+      - "Because a wrong (or misspelt) answer would pull in evidence for the wrong idea, which could seem to support it"
+      - "Because the student's answer is not available until week 5"
+      - "Because BM25 cannot search with more than one query"
+    answer: 1
+    explanations:
+      - "Length isn't the issue; even a long answer can be embedded or searched."
+      - "Correct. If a student describes starvation instead of deadlock, searching their words returns the scheduling notes. Evidence must describe a CORRECT answer, so it comes from the examiner's words; the answer gets a 0.3 weight so a valid but unexpected point can still find its passage."
+      - "The answer is passed in as answer_text; the design choice is about weighting, not availability."
+      - "find_evidence runs one search per query and fuses the lists with Reciprocal Rank Fusion."
+
+  - id: w4-q5
+    lecture: "Day 2 - Grounded Answers: Citations and Hallucination Checks"
+    question: "An answer says: 'Deadlocks are fixed by rebooting the computer [unit1_operating_systems.pdf p4 §1.6 Deadlocks].' The citation is one of the retrieved sources. What is wrong?"
+    options:
+      - "Nothing: the citation is valid, so the answer is grounded"
+      - "It's a fabricated citation"
+      - "The citation format is wrong"
+      - "It's an unsupported claim: the cited passage doesn't say that"
+    answer: 3
+    explanations:
+      - "A valid citation is necessary but not sufficient: the claim itself must be supported by the passage."
+      - "The source exists and was retrieved, so it isn't fabricated. The problem is what the sentence claims."
+      - "That is exactly GradeWise's citation format: source, page and section."
+      - "Correct. Real citation, unsupported claim. Word overlap catches obvious cases cheaply; an LLM groundedness judge (Self-RAG's 'is it supported?') catches paraphrases and flipped meanings."
+
+  - id: w4-q6
+    lecture: "Day 3 - PDF Pages to Images: DPI, Rotation, Contrast and Pre-Processing"
+    question: "GradeWise renders pages at 200 DPI and then caps the long side at 1600 px. Under OpenAI's high-detail tile rule, what happens to the token estimate if you render at 300 DPI instead?"
+    options:
+      - "It stays the same: the image is capped and downscaled before tiles are counted, so the extra pixels only cost render and upload time"
+      - "It grows 2.25×, because 300 DPI has 2.25× the pixels of 200 DPI"
+      - "It halves, because sharper images compress better"
+      - "It grows 9×, because pixels grow with the square of DPI"
+    answer: 0
+    explanations:
+      - "Correct. Day 3's table shows identical tile counts from 150 to 300 DPI once the size cap applies. Vision models bill by the pixels they actually see, not by your render resolution."
+      - "That's the raw pixel ratio, but the size cap (and the provider's own resize) remove that difference before tokens are counted."
+      - "Compression affects upload size, not the token count."
+      - "9× is the pixel ratio between 100 and 300 DPI, and it is still removed by the cap."
+
+  - id: w4-q7
+    lecture: "Day 4 - Faithful Transcription with a Vision LLM (Never \"Fix\" the Student)"
+    question: "A teammate adds a spell-checker after transcription 'to help the grader'. Using the synthetic ground truth, what would you expect to see?"
+    options:
+      - "CER drops to 0 for every student"
+      - "CER rises the most for the weakest spellers, and some marks could change: the transcript no longer shows what was written"
+      - "No measurable change, because CER ignores spelling"
+      - "CER rises equally for every student"
+    answer: 1
+    explanations:
+      - "CER is measured against what the student WROTE, so every 'fix' is an error, not an improvement."
+      - "Correct. Day 4 showed strong students untouched and student_07 rewritten the most: a biased transcriber. Whether spelling matters is the grader's decision, made with the real text in front of it."
+      - "CER counts every character difference, including spelling corrections."
+      - "Only answers with misspellings change, so the error is concentrated on weaker spellers."
+
+  - id: w4-q8
+    lecture: "Day 4 - Mapping Answers to Questions: Labels, Continuations, Missing Answers"
+    question: "The exam has Q10a and Q10b but no plain Q10. A student labels an answer 'Question 10:'. What does normalise_label(label, valid_ids) return, and what happens to the text?"
+    options:
+      - "'Q10a', the first sub-part, and the text is graded as Q10(a)"
+      - "'Q10', and the grader decides which part it belongs to"
+      - "None, and map_answers puts the text in unmapped_text for a human to place"
+      - "It raises an error and the sheet fails"
+    answer: 2
+    explanations:
+      - "Guessing a sub-part could grade the text against the wrong question. The mapper never guesses between parts."
+      - "With valid_ids given, the result must be a real exam ID, and Q10 isn't one."
+      - "Correct. A refusal is cheap (a human places it in seconds), a wrong match is expensive. Blank answers also drop to 0.5 confidence, because the 'missing' answer may be hiding in the unmapped text."
+      - "The mapper degrades gracefully; an unknown label never crashes the sheet."
+
+  - id: w4-q9
+    lecture: "Day 4 - Confidence Scores, Illegible Flags and Double-Pass Verification"
+    question: "The model reports 0.9 confidence for an answer in which a quarter of the words are [illegible]. What does combine_confidence(0.9, illegible=0.25) return, and is it flagged at the 0.75 threshold?"
+    options:
+      - "0.9, not flagged: the model's confidence is trusted"
+      - "0.675, flagged"
+      - "0.225, flagged"
+      - "0.45, flagged"
+    answer: 3
+    explanations:
+      - "Self-reported confidence is the weakest signal; the illegible ratio always pulls it down."
+      - "That would be 0.9 × 0.75. The formula doubles the illegible ratio: 1 − min(1, 2 × 0.25) = 0.5."
+      - "That would be 0.9 × 0.25, which isn't the formula."
+      - "Correct. 0.9 × (1 − 2 × 0.25) = 0.45, well under 0.75, so a human checks it before grading."
+
+  - id: w4-q10
+    lecture: "🧱 Day 5 - The Transcription Subgraph, Tuned for Cost and Latency"
+    question: "In the transcription subgraph's state, `pages` is declared as `Annotated[list[PageTranscription], operator.add]`. What would go wrong without the operator.add reducer?"
+    options:
+      - "The graph would not compile, because lists need a reducer"
+      - "Pages would be transcribed one at a time instead of in parallel"
+      - "Several parallel transcribe_page branches would write the same key in one super-step, so LangGraph would raise an InvalidUpdateError instead of collecting every page"
+      - "Nothing: Send merges branch results automatically"
+    answer: 2
+    explanations:
+      - "A list field without a reducer compiles fine. The problem only appears at run time, when several branches update it at once."
+      - "Parallelism comes from Send and the super-step, not from the reducer."
+      - "Correct. With operator.add, every branch ADDS its page to the list, so map_answers sees every page. Without a reducer, LangGraph refuses concurrent writes to the same key (InvalidUpdateError), because it can't know how to combine them."
+      - "Send launches the branches; it's the reducer that decides how their updates combine."

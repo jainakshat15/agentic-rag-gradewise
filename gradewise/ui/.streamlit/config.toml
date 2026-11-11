@@ -1,0 +1,35 @@
+# ╭──────────────────────────────────────────────────────────────────────╮
+# │  🎨 gradewise/ui/.streamlit/config.toml: the dashboard's theme       │
+# │                                                                      │
+# │  Streamlit reads the .streamlit/ folder NEXT TO the main script, so  │
+# │  this works whichever folder you launch from:                        │
+# │      uv run python -m streamlit run gradewise/ui/app.py              │
+# │  Same palette as the slides, the terminal and the report cards.      │
+# ╰──────────────────────────────────────────────────────────────────────╯
+
+[theme]
+base = "dark"
+primaryColor = "#7C5CFF"            # violet: buttons, toggles, focus rings
+backgroundColor = "#0B1020"         # deep navy
+secondaryBackgroundColor = "#141B34" # surface: sidebar, inputs, cards
+textColor = "#E6E9F5"
+linkColor = "#22D3EE"               # cyan accent
+borderColor = "#262F55"
+baseRadius = "0.75rem"
+showWidgetBorder = true
+codeBackgroundColor = "#0F1530"
+chartCategoricalColors = ["#7C5CFF", "#22D3EE", "#34D399", "#FBBF24", "#F87171"]
+
+[theme.sidebar]
+backgroundColor = "#0E1428"
+secondaryBackgroundColor = "#141B34"
+
+[client]
+toolbarMode = "minimal"   # 💡 hides the developer menu; your users only see the app
+
+[server]
+headless = true           # 💡 don't try to open a browser (we run in a terminal, Docker or the cloud)
+maxUploadSize = 50        # MB per file: plenty for a scanned answer sheet
+
+[browser]
+gatherUsageStats = false

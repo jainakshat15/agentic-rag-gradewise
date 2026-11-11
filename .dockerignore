@@ -1,0 +1,39 @@
+# ╭──────────────────────────────────────────────────────────────────────╮
+# │  🐳 .dockerignore: what NEVER goes into the image                    │
+# │  Smaller context = faster builds, and no secrets baked into layers.  │
+# ╰──────────────────────────────────────────────────────────────────────╯
+
+# 🔑 Secrets: passed at run time (env_file / platform secrets), never copied in
+.env
+.env.*
+!.env.example
+
+# 🐍 Local environments and caches (the image builds its own .venv on Linux)
+.venv/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# 🧱 Generated data: lives in the output volume, not the image
+output/
+*.db
+*.sqlite3
+vector_db/
+
+# 📚 Course material the server doesn't need
+.git/
+.github/
+week*/
+guides/
+slides/
+quizzes/
+setup/
+assets/
+community_contributions/
+scripts/
+tests/
+docker-compose.yml
+docker/
+*.ipynb

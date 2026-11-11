@@ -1,0 +1,35 @@
+# ── 🔑 Secrets: NEVER commit these ────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── 🐍 Python ─────────────────────────────────────────────────────
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+
+# ── 📓 Notebooks ──────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── 🧱 Things GradeWise generates while you work ──────────────────
+output/
+vector_db/
+*.sqlite
+*.sqlite3
+*.db
+setup/report.txt
+
+# ── 💻 Editors & OS ───────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# 🖼️ slide PDFs are 40-50 MB each: shipped as Udemy resources / GitHub Release assets, not in git
+slides/pdf/
