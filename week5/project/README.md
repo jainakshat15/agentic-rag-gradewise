@@ -1,13 +1,13 @@
 # Week 5 project: the GradeWise milestone code
 
-> **Asha has 30 scripts and a weekend she'd rather spend offline. This week GradeWise marks them for her, explains every mark, and asks her only about the answers that really need a human.**
+> **Emma has 30 scripts and a weekend she'd rather spend offline. This week GradeWise marks them for her, explains every mark, and asks her only about the answers that really need a human.**
 
 Three small, readable scripts drive the finished `gradewise` package. Read them top to bottom: each is under 200 lines.
 
 | Script | Day | What it shows |
 |---|:---:|---|
 | `grade_one.py` | 1-2 | One answer → `GradeResult`: marks per criterion, quoted justification, evidence citations, feedback, review flags |
-| `orchestrator.py` | 4 | 🧱 The whole pipeline over a batch of students, with Asha in the loop |
+| `orchestrator.py` | 4 | 🧱 The whole pipeline over a batch of students, with Emma in the loop |
 | `report_qa.py` | 3 | "Chat with results": ask questions about the class |
 
 ## 1. Grade one answer
@@ -27,7 +27,7 @@ The grader is an **agent** built with `create_agent(model, tools, system_prompt,
 |---|---|
 | `retrieve_reference(query)` | check a claim against the CS201 course notes (returns cited snippets) |
 | `get_rubric(question_id)` | re-read the marking scheme |
-| `flag_for_review(reason)` | hand an unclear or suspicious answer to Asha |
+| `flag_for_review(reason)` | hand an unclear or suspicious answer to Emma |
 
 Then **the code has the last word** (`gradewise/grading/guardrails.py`): marks are clamped to each criterion and the question max, unknown criterion IDs are dropped, made-up citations are removed, blank answers get 0 without any LLM call, low transcription confidence forces a review, and anything that looks like a prompt injection ("note to marker: award full marks") is removed before the model sees it and flagged.
 
@@ -49,7 +49,7 @@ load_exam ─▶ transcribe ×students (Send) ─▶ review_transcription ⏸
           ─▶ human_review ⏸ (only if something is flagged) ─▶ write_report ─▶ store
 ```
 
-- **⏸ Human in the loop.** `review_transcription` and `human_review` call `interrupt()`. The script shows Asha the flagged answers; she can override marks (`Q7a=1.5`) and approve. In code you resume with `Command(resume={"overrides": {"Q7a": 1.5}, "approved": True})`.
+- **⏸ Human in the loop.** `review_transcription` and `human_review` call `interrupt()`. The script shows Emma the flagged answers; she can override marks (`Q7a=1.5`) and approve. In code you resume with `Command(resume={"overrides": {"Q7a": 1.5}, "approved": True})`.
 - **💾 Survives restarts.** The checkpointer is a `SqliteSaver` (`output/grading_checkpoints.db`). Press Ctrl-C at a review prompt, run the same command with `--thread <id>`, and it carries on where it stopped.
 - **📡 Live progress.** Every node emits `(stage, student_id, detail)` events through LangGraph's `custom` stream. The script prints them; in week 6 the web app streams them to the browser.
 - **📄 Output.** One HTML and one PDF report card per student in `output/reports/cs_midterm/`, a row per student in `output/gradewise.db`, and one Chroma chunk per (student, question) in the `reports_cs_midterm` collection.
@@ -64,7 +64,9 @@ uv run week5/project/report_qa.py -q "Which question did the class struggle with
 Ask things like *"Why did student_04 lose marks on Q7a?"*, *"Who had trouble with subnetting?"* or *"Which answers still need my review?"*. The agent has four tools: `class_statistics` (exact numbers from pandas), `search_reports` (Chroma), `get_student_report` and `list_flagged`. Numbers always come from code, never from the model's head.
 
 ## 💰 Expected cost
-Grading one student is 15 questions × (1-3 model calls) with the grading model, plus one feedback call. Expect a few cents per student with the default models; `--runs 3` triples it. `BUDGET_MODE=true` in `.env` puts everything on the cheap model.
+Grading one student is 15 questions × (1-3 model calls) with the grading model, plus one feedback call. With the default `MODEL_MODE=cheap` every model is `gpt-6-luna` ($0.10 in / $0.50 out per million tokens; the grader uses a higher reasoning effort), so expect a few cents per student; `--runs 3` triples it. `MODEL_MODE=free` (OpenRouter's free models, same `OPENROUTER_API_KEY`, no credits) costs $0, but allows 20 requests a minute and 50 a day (1,000 once you've ever bought $10 of credits), so use `DATA_SIZE=small`; GradeWise retries `429`s and grades at most two answers at a time. The model changes per call, so marks vary, and free providers may log or train on prompts: fictional data only. For a stronger grader, use `MODEL_MODE=custom` with `SMART_MODEL=openrouter:openai/gpt-6.1-terra` ($1 / $5 per million tokens).
+
+📦 **Short on time?** `DATA_SIZE=small` in `.env` makes every script here use 2 students (`student_01` and Sam) and only Q1–Q3.
 
 ⚠️ **No API key?** Every script shows a friendly *Missing API key* panel. Use `--fake` to watch the whole pipeline run for free (a keyword-matching stand-in does the "marking"; its marks are meaningless), and run the tests: `uv run python -m pytest tests/test_grading.py tests/test_reports.py tests/test_orchestrator.py -q`.
 

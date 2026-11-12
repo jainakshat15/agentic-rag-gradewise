@@ -41,7 +41,7 @@ from langchain_core.documents import Document  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
 from rich.table import Table  # noqa: E402
 
-from gradewise import config  # noqa: E402
+from gradewise import config, datasets  # noqa: E402
 from gradewise.console import banner, console, step, success, tip, warn  # noqa: E402
 from gradewise.errors import GradeWiseError  # noqa: E402
 
@@ -356,6 +356,10 @@ def main(argv: list[str] | None = None) -> int:
     tests = load_tests(args.tests)
     if args.limit:
         tests = tests[: args.limit]
+    elif args.row is None:
+        tests = datasets.eval_slice(tests)  # 💡 DATA_SIZE=small: the first 5 questions (--limit and --row still win)
+    if datasets.is_small():
+        tip(datasets.describe())
     ensure_indexes(names, embeddings)
     pipelines = {name: get_pipeline(name, embeddings) for name in names}
 

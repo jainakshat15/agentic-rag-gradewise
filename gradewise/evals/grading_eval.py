@@ -249,8 +249,13 @@ def evaluate_grading(
     show: bool = True,
     save: bool = True,
 ) -> dict[str, Any]:
-    """Compare these ReportCards with the golden labels; print and save (output/evals/grading_eval.json)."""
-    golden = load_golden(golden_path)
+    """Compare these ReportCards with the golden labels; print and save (output/evals/grading_eval.json).
+
+    📦 DATA_SIZE=small compares only the small slice: student_01 + student_05 × Q1–Q3 (datasets.golden_rows).
+    """
+    from gradewise import datasets
+
+    golden = datasets.golden_rows(load_golden(golden_path))
     human, max_marks = human_marks(golden)
     result = compare_marks(human, predicted_marks(reports), max_marks)
     result["criterion_exact"] = criterion_agreement(golden, reports)

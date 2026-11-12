@@ -3,7 +3,7 @@
 │  🎓 Agentic RAG with LangChain & LangGraph                           │
 │  💬 Week 6 · Day 3: Chat with the results                            │
 │                                                                      │
-│  What: ask the week 5 results agent anything Asha would ask after a  │
+│  What: ask the week 5 results agent anything Emma would ask after a  │
 │        marking session. It answers with its four tools: exact stats, │
 │        semantic search over graded answers, one student's report,    │
 │        and the list of flags.                                        │

@@ -2,7 +2,7 @@
 
 # 🪟 Setup instructions for Windows
 
-Welcome, Windows people! This guide gets your machine ready in about **20–30 minutes**. It goes with the video **Week 1 · Day 1: "Windows Setup: Git, Cursor/VS Code, Clone and `uv sync`"**. Watch it alongside if you like seeing every click.
+Welcome, Windows people! This guide gets your machine ready. It goes with the video **Week 1 · Day 1: "Windows Setup: Git, Cursor/VS Code, Clone and `uv sync`"**. Watch it alongside if you like seeing every click.
 
 Each Part ends with a ✅ **Checkpoint**. Don't move on until the checkpoint passes: a problem fixed now saves an hour later.
 
@@ -24,13 +24,13 @@ These four catch more students than everything else combined. Two minutes now wi
    ```
    Then **restart your computer**. Also, clone the repo into a *short* path such as `C:\Users\you\projects\`.
 
-4. **Microsoft C++ Build Tools.** A few data-science packages compile code during install. If you have never installed these tools, get them now: download the **Build Tools for Visual Studio** from https://visualstudio.microsoft.com/visual-cpp-build-tools/. In the installer, tick **"Desktop development with C++"** and install. (You may never need it in this course, but if an install error mentions `cl.exe` or `Microsoft Visual C++ 14.0 is required`, this is the fix.)
+4. **Microsoft C++ Build Tools.** You probably won't need these: every package in this course installs ready-made on Windows. Install them only if an install error mentions `cl.exe` or `Microsoft Visual C++ 14.0 is required`. Then download the **Build Tools for Visual Studio** from https://visualstudio.microsoft.com/visual-cpp-build-tools/, tick **"Desktop development with C++"** in the installer, and install.
 
 ---
 
 ## Part 1: Install your code editor (Cursor or VS Code)
 
-I use **Cursor** in the videos. It's VS Code with AI built in. Plain **VS Code** works identically for this course.
+I use **VS Code** in the videos. **Cursor** (VS Code with AI built in) works identically for this course.
 
 1. Download **Cursor** from https://cursor.com/ (or VS Code from https://code.visualstudio.com/)
 2. Run the installer with the default options, then open it.
@@ -38,7 +38,7 @@ I use **Cursor** in the videos. It's VS Code with AI built in. Plain **VS Code**
    - **Python** (by Microsoft)
    - **Jupyter** (by Microsoft)
 
-> 💡 Cursor may show a splash screen that looks different from mine: that's fine, they update it often.
+> 💡 Your editor may show a splash screen that looks different from mine: that's fine, they update it often.
 
 ✅ **Checkpoint:** Cursor/VS Code opens, and both extensions show as installed.
 
@@ -105,16 +105,27 @@ I use **Cursor** in the videos. It's VS Code with AI built in. Plain **VS Code**
 
 ---
 
-## Part 4: Your OpenAI API key
+## Part 4: Your OpenRouter API key
 
-1. Create an account (or sign in) at https://platform.openai.com/
-2. **Add credit:** go to **Settings → Billing**. OpenAI asks for a small minimum credit (about **$5**). The whole course costs **under $10** with default settings, and most weeks cost cents.
-3. **Set a budget limit** (Settings → Limits) so there are never surprises. Agentic systems are less predictable than ordinary code, which is the point, but it means it's wise to cap spending.
-4. Create a key: **API keys → Create new secret key**. Name it `gradewise-course`, then **copy it right away**: you can't see it again later.
+GradeWise reaches every model through **[OpenRouter](https://openrouter.ai)**, so you need **one key**, `OPENROUTER_API_KEY`, for both modes. One line in `.env`, `MODEL_MODE`, then picks the models:
+- `cheap` (the default): OpenAI's **gpt-6-luna**, $0.10 / $0.50 per 1M tokens. Needs a few dollars of OpenRouter credits.
+- `free`: **openrouter/free**, OpenRouter's free-models router. $0 and no credits, but rate-limited.
 
-> 💡 **Prefer another provider?** Anthropic (https://console.anthropic.com/), Google Gemini (https://aistudio.google.com/, which has a free tier) and free local models via Ollama all work. Finish this guide, then follow [SWAP_PROVIDER.md](SWAP_PROVIDER.md).
+1. Sign up at https://openrouter.ai (a Google or GitHub login works).
+2. Go to https://openrouter.ai/keys → **Create Key**. Name it `gradewise-course`, then **copy it right away**: it starts with `sk-or-` and you can't see it again later.
+3. **For `cheap` mode, add credits** at https://openrouter.ai/settings/credits. A few dollars is plenty: week 1 costs a few cents, and GradeWise prints the cost of each run. OpenRouter adds a small fee when you buy credits. **`free` mode needs no credits.**
+4. **Set a credit limit on the key** (on the keys page) so there are never surprises. Agentic systems are less predictable than ordinary code, which is the point, but it means it's wise to cap spending.
 
-✅ **Checkpoint:** you have a key starting with `sk-` copied somewhere safe (a password manager, not a sticky note!).
+> ⚠️ **Free-mode caveats** (`MODEL_MODE=free`):
+> 1. **Rate limits:** 20 requests a minute and **50 requests a day** until your account has ever bought $10 of credits (then 1,000 a day).
+> 2. **Use it with `DATA_SIZE=small`:** a full class run makes hundreds of calls.
+> 3. **Quality and data:** the router picks a different free model each call, so results vary and an occasional structured-output failure is normal (GradeWise retries). Free providers may log prompts or train on them: fine for this course's fictional data, never OK for real student data. In your [OpenRouter privacy settings](https://openrouter.ai/settings/privacy) you may need to enable **"free endpoints that may train on inputs"**.
+>
+> Details, and the optional stronger grader: [SWAP_PROVIDER.md](SWAP_PROVIDER.md).
+
+> 💡 **Other providers?** OpenAI, Anthropic (Claude), Google Gemini with their own keys, and free local models via Ollama all work with `MODEL_MODE=custom`. Finish this guide, then follow [SWAP_PROVIDER.md](SWAP_PROVIDER.md).
+
+✅ **Checkpoint:** you have a key starting with `sk-or-` copied somewhere safe (a password manager, not a sticky note!).
 
 ---
 
@@ -127,10 +138,16 @@ Your key lives in a file called `.env` in the repo root. It's already in `.gitig
    copy .env.example .env
    ```
 2. Open `.env` in Cursor (it's in the Explorer, near the bottom).
-3. Paste your key after the `=` sign, with **no quotes and no spaces**:
+3. Paste your key after `OPENROUTER_API_KEY=`, with **no quotes and no spaces**:
    ```
-   OPENAI_API_KEY=sk-proj-abc123...
+   OPENROUTER_API_KEY=sk-or-v1-abc123...
    ```
+   That's all `cheap` mode needs. For the $0 route, also change these two lines near the top:
+   ```
+   MODEL_MODE=free
+   DATA_SIZE=small
+   ```
+   (`DATA_SIZE=small` uses 2 PDFs, questions Q1–Q3 and 2 students: also handy in `cheap` mode for a quick run.)
 4. **SAVE THE FILE** (<kbd>Ctrl</kbd>+<kbd>S</kbd>). Honestly, unsaved `.env` files are the #1 setup problem in every course I've seen. 🙂
 
 > ⚠️ **Windows trap:** if you created the file another way (e.g. Notepad), Windows may have secretly named it `.env.txt`. In Explorer, enable **View → Show → File name extensions** to check. The name must be exactly `.env`.
@@ -139,7 +156,7 @@ Your key lives in a file called `.env` in the repo root. It's already in `.gitig
 ```powershell
 uv run setup/diagnostics.py
 ```
-Every section should show ✅ (a few ⚠️ warnings are OK: read them). Check 9 confirms that OpenAI accepts your key. The full report is saved to `setup/report.txt`.
+Every section should show ✅ (a few ⚠️ warnings are OK: read them). Check 4 shows your `MODEL_MODE` and `DATA_SIZE`; check 9 confirms OpenRouter accepts your key (a free call that uses no tokens). The full report is saved to `setup/report.txt`.
 
 ---
 

@@ -3,7 +3,7 @@
 │  🎓 Agentic RAG with LangChain & LangGraph                           │
 │  🧱 Week 5 · Day 4: GradeWise end to end (milestone M5)              │
 │                                                                      │
-│  What: answer sheets in → report cards out, with Asha in the loop:   │
+│  What: answer sheets in → report cards out, with Emma in the loop:   │
 │        transcribe → review → grade (in parallel) → human review →    │
 │        write report cards → store (SQLite + Chroma).                 │
 │  Run:  uv run week5/project/orchestrator.py --students 3             │
@@ -11,6 +11,7 @@
 │        uv run week5/project/orchestrator.py --auto-approve           │
 │        uv run week5/project/orchestrator.py --thread batch-1 (resume)│
 │        uv run week5/project/orchestrator.py --fake  (free, offline)  │
+│  📦 DATA_SIZE=small in .env: only student_01 + Sam, and Q1–Q3        │
 │  ⏮ Built on: gradewise/orchestrator.py, every week before this one  │
 │  ⏭ Next:  uv run week5/project/report_qa.py                         │
 ╰──────────────────────────────────────────────────────────────────────╯
@@ -29,6 +30,7 @@ from rich.table import Table
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from gradewise import datasets  # noqa: E402
 from gradewise.config import DATA_DIR, OUTPUT_DIR, REPO_ROOT  # noqa: E402
 from gradewise.console import banner, console, step, success, tip, warn  # noqa: E402
 from gradewise.errors import DataNotFoundError, GradeWiseError  # noqa: E402
@@ -93,7 +95,7 @@ def ask_teacher(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def main(
-    students: Annotated[int, typer.Option(help="How many students to grade")] = 3,
+    students: Annotated[int, typer.Option(help="How many students to grade (from DATA_SIZE's students)")] = 3,
     from_transcripts: Annotated[
         bool, typer.Option("--from-transcripts", help="Skip vision: use transcripts.json as the answers")
     ] = False,
@@ -107,12 +109,15 @@ def main(
     banner("Week 5 · The GradeWise orchestrator", "answer sheets → grades → human review → report cards")
     thread = thread or f"batch-{datetime.now():%Y%m%d-%H%M%S}"
     try:
-        exam = resolve_exam(exam_id)
+        # 📦 DATA_SIZE decides the slice: all questions and 10 students, or Q1–Q3 and 2 students when small
+        exam = datasets.subset_exam(resolve_exam(exam_id))
+        chosen = datasets.synthetic_students()[:students]
+        step(datasets.describe())
         if from_transcripts or fake:
-            items: list[Any] = sheets_from_transcripts(exam, students=students)
+            items: list[Any] = sheets_from_transcripts(exam, students=chosen)
             step(f"{len(items)} answer sheet(s) built from transcripts.json (no vision calls)")
         else:
-            pdfs = sorted(SHEETS_DIR.glob("student_*.pdf"))[:students]
+            pdfs = [p for p in (SHEETS_DIR / f"{sid}.pdf" for sid in chosen) if p.exists()]
             if not pdfs:
                 raise DataNotFoundError(f"No answer-sheet PDFs in {SHEETS_DIR}")
             items = pdfs

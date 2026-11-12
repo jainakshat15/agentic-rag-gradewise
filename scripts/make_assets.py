@@ -166,7 +166,7 @@ def make_hero() -> None:
         x += bw + gap
     d.text(
         (80, 570),
-        "Asha uploads the exam  ·  GradeWise reads, grades and explains  ·  a human stays in control",
+        "Emma uploads the exam  ·  GradeWise reads, grades and explains  ·  a human stays in control",
         font=font(26),
         fill=ACCENT,
     )

@@ -1,7 +1,7 @@
 """
 ╭──────────────────────────────────────────────────────────────────────╮
 │  🎓 Agentic RAG with LangChain & LangGraph                           │
-│  🖥️ Week 6 · Day 2: gradewise.ui, Asha's dashboard (Streamlit)       │
+│  🖥️ Week 6 · Day 2: gradewise.ui, Emma's dashboard (Streamlit)       │
 │                                                                      │
 │  What this package does                                              │
 │      app.py      → the shell: theme, sidebar, demo toggle, pages     │

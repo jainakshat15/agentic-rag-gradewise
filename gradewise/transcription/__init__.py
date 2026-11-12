@@ -25,7 +25,7 @@ from gradewise.transcription.confidence import (
 )
 from gradewise.transcription.graph import build_transcription_graph, transcribe_sheet
 from gradewise.transcription.mapper import map_answers, normalise_label
-from gradewise.transcription.pdf_to_images import preprocess, render_page, render_pages, to_data_url
+from gradewise.transcription.pdf_to_images import image_block, preprocess, render_page, render_pages, to_data_url
 from gradewise.transcription.schemas import AnswerSegment, PageTranscription
 from gradewise.transcription.vision import transcribe_page
 
@@ -39,6 +39,7 @@ __all__ = [
     "double_pass_verify",
     "flagged_answers",
     "illegible_ratio",
+    "image_block",
     "map_answers",
     "needs_review",
     "normalise_label",

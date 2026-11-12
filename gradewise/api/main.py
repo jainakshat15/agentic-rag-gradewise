@@ -10,7 +10,7 @@
 │      GET  /knowledge-bases                 what's been ingested      │
 │      POST /knowledge-bases/{name}/documents upload PDFs → ingest     │
 │      POST /exams                           upload exam pack → ⏸      │
-│      POST /exams/{id}/approve              Asha approves → stored    │
+│      POST /exams/{id}/approve              Emma approves → stored    │
 │      GET  /exams · /exams/{id}             stored exams              │
 │      POST /batches                         start grading (background)│
 │      GET  /batches · /batches/{id}         status + pending review   │
@@ -41,7 +41,7 @@ from fastapi import APIRouter, FastAPI, File, Form, Header, Query, Request, Uplo
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from langgraph.types import Command
 
-from gradewise import __version__
+from gradewise import __version__, datasets
 from gradewise.api.demo import DemoExamModel, DemoGraderModel, DemoResultsModel, DemoRetriever, demo_embeddings
 from gradewise.api.demo import demo_sheet as make_demo_sheet
 from gradewise.api.jobs import BatchJob, JobRegistry, error_payload, new_batch_id
@@ -190,13 +190,41 @@ def vectorstore_counts(ws: Workspace) -> dict[str, int]:
     if not ws.vector_dir.exists():
         return {}
     # 💡 Counting needs no embeddings, so the free fake works in both modes (no API key involved).
-    client = get_vectorstore("cs201", embeddings=demo_embeddings(), persist_dir=ws.vector_dir)._client
+    #    The store is keyed by embedding model: demo mode has its own folder, real mode uses your
+    #    MODEL_MODE's embedding model, so we open THAT folder (embedding_model=...).
+    key = None if ws.demo else settings.embedding_model
+    client = get_vectorstore(
+        "cs201", embeddings=demo_embeddings(), persist_dir=ws.vector_dir, embedding_model=key
+    )._client
     counts = {}
     for col in client.list_collections():
         name = col if isinstance(col, str) else col.name
         if not name.startswith("reports_"):
             counts[name] = client.get_collection(name).count()
     return counts
+
+
+def pick_students(count: int | None) -> list[str]:
+    """The synthetic students for a batch: datasets.synthetic_students() (10, or 2 when DATA_SIZE=small),
+    cut to the first `count`. Asking for more than the small set falls back to the full class."""
+    ids = datasets.synthetic_students()
+    if count is not None and count > len(ids):
+        ids = datasets.synthetic_students(small=False)
+    return ids[:count] if count else ids
+
+
+def pick_questions(paper: ExamPaper, requested: str | None) -> list[str]:
+    """The question IDs to grade: the comma-separated `requested`, else datasets.exam_question_ids(paper)."""
+    if requested and requested.strip():
+        ids = [q.strip() for q in requested.split(",") if q.strip()]
+        unknown = sorted(set(ids) - {q.id for q in paper.questions})
+        if unknown:
+            raise BadUploadError(
+                f"These question IDs are not on exam {paper.exam_id!r}: {unknown}",
+                fix=f"Use IDs from the exam, e.g. {', '.join(q.id for q in paper.questions[:4])}.",
+            )
+        return ids
+    return datasets.exam_question_ids(paper)
 
 
 # ── 🧮 Building the graphs for a workspace ──────────────────────────────────────
@@ -265,7 +293,7 @@ def exam_review(graph, exam_id: str, thread_id: str, demo: bool) -> ExamReview:
 
 
 def pending_review(job: BatchJob) -> PendingReview | None:
-    """The interrupt payload, enriched with what Asha needs: question, transcription, justification, evidence."""
+    """The interrupt payload, enriched with what Emma needs: question, transcription, justification, evidence."""
     pending = job.pending
     if not pending:
         return None
@@ -366,6 +394,11 @@ def health(request: Request) -> Health:
         chat_model=settings.chat_model,
         grading_model=settings.grading_model,
         vision_model=settings.transcription_model,
+        embedding_model=settings.embedding_model,
+        model_mode=settings.model_mode,
+        data_size=datasets.data_size(),
+        data_banner=datasets.describe(),
+        required_keys=settings.required_keys,
         jobs=jobs(request).counts(),
     )
 
@@ -395,7 +428,9 @@ def upload_documents(
     request: Request,
     name: str,
     files: Annotated[list[UploadFile], File(description="Course-note PDFs")] = [],  # noqa: B006
-    include_course_notes: Annotated[bool, Form(description="Also add the CS201 notes from data/")] = False,
+    include_course_notes: Annotated[
+        bool, Form(description="Also add the CS201 notes from data/ (2 of the 4 PDFs when DATA_SIZE=small)")
+    ] = False,
     reset: Annotated[bool, Form(description="Wipe the collection first")] = False,
     demo: DemoForm = None,
 ) -> IngestResponse:
@@ -407,7 +442,7 @@ def upload_documents(
     for upload in files:
         save_upload(upload, folder)
     if include_course_notes:
-        for pdf in sorted(COURSE_NOTES.glob("*.pdf")):
+        for pdf in datasets.kb_files(COURSE_NOTES):
             shutil.copy2(pdf, folder / pdf.name)  # 💡 a COPY: data/ is never written to
     if not any(folder.glob("*.pdf")):
         raise BadUploadError(f"Knowledge base {name!r} has no PDFs yet.", fix="Upload at least one PDF.")
@@ -474,7 +509,7 @@ def upload_exam(
 
 @router.post("/exams/{exam_id}/approve", response_model=ExamReview, tags=["exams"])
 def approve_exam(request: Request, exam_id: str, body: ApproveExamRequest) -> ExamReview:
-    """Resume the paused exam graph with Asha's decision: approve (optionally with edits) or reject."""
+    """Resume the paused exam graph with Emma's decision: approve (optionally with edits) or reject."""
     ws = workspace(request, body.demo)
     graph = exam_graph(request, ws)
     thread_id = f"exam-{safe_name(exam_id, 'exam ID')}"
@@ -532,8 +567,17 @@ def create_batch(
     files: Annotated[list[UploadFile], File(description="Answer-sheet PDFs (student ID = file name)")] = [],  # noqa: B006
     use_synthetic: Annotated[bool, Form(description="Grade the bundled synthetic answer PDFs")] = False,
     from_transcripts: Annotated[bool, Form(description="Skip vision: grade transcripts.json")] = False,
-    students: Annotated[int, Form(ge=1, le=100, description="How many synthetic students")] = 3,
+    students: Annotated[
+        int | None,
+        Form(ge=1, le=100, description="How many synthetic students (default: 10, or 2 when DATA_SIZE=small)"),
+    ] = None,
     auto_approve: Annotated[bool, Form(description="Approve every review automatically (demos only!)")] = False,
+    questions: Annotated[
+        str | None,
+        Form(
+            description="Comma-separated question IDs to grade, e.g. Q1,Q2a (default: all, or Q1–Q3 if DATA_SIZE=small)"
+        ),
+    ] = None,
     demo: DemoForm = None,
 ) -> BatchCreated:
     """Start grading in the background. Returns at once with a batch_id: poll it, or stream its /events."""
@@ -541,17 +585,21 @@ def create_batch(
 
     ws = workspace(request, demo)
     paper, _ = resolve_paper(exam_id, ws)
+    # 📦 DATA_SIZE=small grades Q1–Q3 only; an explicit `questions` form field always wins.
+    question_ids = pick_questions(paper, questions)
+    paper = datasets.subset_exam(paper, question_ids)
     batch_id = new_batch_id()
     items: list[Any]
+    chosen = pick_students(students)
     if from_transcripts:
-        items = sheets_from_transcripts(paper, students=students)
+        items = sheets_from_transcripts(paper, students=chosen)
         how = f"{len(items)} answer sheet(s) from transcripts.json (no vision model)"
     else:
         if files:
             folder = ws.upload_dir("batches", batch_id)
             pdfs = [save_upload(upload, folder) for upload in files]
         elif use_synthetic:
-            pdfs = sorted(SYNTHETIC_SHEETS.glob("student_*.pdf"))[:students]
+            pdfs = [p for p in (SYNTHETIC_SHEETS / f"{sid}.pdf" for sid in chosen) if p.exists()]
         else:
             raise BadUploadError(
                 "No answer sheets were given.", fix="Upload PDFs, or set use_synthetic=true or from_transcripts=true."
@@ -581,6 +629,7 @@ def create_batch(
             items,
             thread_id=job.thread_id,
             exam=paper,
+            questions=question_ids,
             orchestrator=orchestrator,
             auto_approve=auto_approve,
             on_event=job.on_event,

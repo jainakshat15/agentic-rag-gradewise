@@ -6,13 +6,13 @@ questions:
     question: "GradeWise never writes a model name like a specific GPT or Claude version in its code; every lab gets models from `gradewise.models` (`chat_model()`, `grading_model()`...), which read `.env`. What is the main benefit?"
     options:
       - "Models created this way are cheaper per token"
-      - "You can switch provider or model (OpenAI, Claude, Gemini, a local Ollama model) by editing one line of `.env`, without touching a notebook or the package"
+      - "You can switch provider or model (OpenRouter, OpenAI, Claude, Gemini, a local Ollama model) by editing one line of `.env`, without touching a notebook or the package"
       - "It stops the model from seeing your API key"
       - "It makes the model's answers deterministic"
     answer: 1
     explanations:
       - "The price depends on the model you pick, not on how you create it."
-      - "Correct. One factory, one settings file: that's why the same course runs on four providers, and why `BUDGET_MODE` can swap every step to the cheap model at once."
+      - "Correct. One factory, one settings file: that's why the same course runs on OpenRouter or any other provider, and why one `MODEL_MODE` line switches every step between cheap `gpt-6-luna` and OpenRouter's free models at once."
       - "The model never sees your key either way: it's sent to the provider's API as authentication, not as part of the prompt."
       - "Determinism is about sampling (temperature, seeds) and the provider, not about where the model name is stored."
 
@@ -63,7 +63,7 @@ questions:
 
   - id: final-q5
     lecture: "Week 2 Day 4 - Hybrid Search and Reranking in Practice"
-    question: "Asha searches the notes for \"SJF\" and \"Q7a\". Dense (embedding) search returns vaguely related scheduling text; BM25 nails both. Why?"
+    question: "Emma searches the notes for \"SJF\" and \"Q7a\". Dense (embedding) search returns vaguely related scheduling text; BM25 nails both. Why?"
     options:
       - "BM25 understands the meaning of abbreviations better than embeddings"
       - "Exact rare tokens like acronyms, codes and IDs are BM25's strength: it rewards documents containing those exact strings, while an embedding blurs them into a general topic"
@@ -114,7 +114,7 @@ questions:
 
   - id: final-q8
     lecture: "Week 3 Day 5 - Exam Understanding v2: Extract → Validate → Retry → Admin Approval → Store"
-    question: "The week 6 API runs the exam graph with the thread ID `f\"exam-{exam_id}\"` rather than a fresh `uuid4()` per upload. Why does that matter for Asha?"
+    question: "The week 6 API runs the exam graph with the thread ID `f\"exam-{exam_id}\"` rather than a fresh `uuid4()` per upload. Why does that matter for Emma?"
     options:
       - "UUIDs are too long for SQLite"
       - "A deterministic thread ID lets `POST /exams/{id}/approve` find the paused graph in the SQLite checkpointer from the exam ID alone, even after the API has restarted"
@@ -144,7 +144,7 @@ questions:
 
   - id: final-q10
     lecture: "Week 4 Day 4 - Confidence Scores, Illegible Flags and Double-Pass Verification"
-    question: "To be extra safe, Asha raises the transcription-confidence threshold for review from 0.7 to 0.95. What should she expect?"
+    question: "To be extra safe, Emma raises the transcription-confidence threshold for review from 0.7 to 0.95. What should she expect?"
     options:
       - "Better transcriptions, because the vision model tries harder"
       - "No change: confidence scores are always above 0.95"
@@ -189,7 +189,7 @@ questions:
 
   - id: final-q13
     lecture: "Week 5 Day 3 - Storing Reports and the \"Chat With Results\" Agent"
-    question: "Asha asks the results agent \"What was the class average on Q4b?\". Why does GradeWise answer through a `class_statistics` tool instead of putting all the report cards in the prompt and letting the model work it out?"
+    question: "Emma asks the results agent \"What was the class average on Q4b?\". Why does GradeWise answer through a `class_statistics` tool instead of putting all the report cards in the prompt and letting the model work it out?"
     options:
       - "Models aren't allowed to do arithmetic"
       - "Report cards are confidential and can never be shown to a model"
@@ -225,7 +225,7 @@ questions:
 
   - id: final-q15
     lecture: "Week 6 Day 1 - Production Architecture: API, Workers, UI, Storage"
-    question: "The API process restarts while a batch is paused for Asha's review. What is lost, and what isn't?"
+    question: "The API process restarts while a batch is paused for Emma's review. What is lost, and what isn't?"
     options:
       - "The in-memory job list (so GET /batches/{id} answers 404), but not the work: the orchestrator's checkpoints are in SQLite, so the paused thread can still be resumed by its thread ID (the batch ID)"
       - "Everything: the batch must be graded again from scratch"
@@ -241,7 +241,7 @@ questions:
   - id: final-q16
     lecture: "Week 6 Day 2 - Streamlit Admin Dashboard: Knowledge Bases, Exams, Batches"
     question: |-
-      A learner's Streamlit page forgets which batch it's following every time Asha clicks anything:
+      A learner's Streamlit page forgets which batch it's following every time Emma clicks anything:
 
       batch_id = None
       if st.button("Start grading"):

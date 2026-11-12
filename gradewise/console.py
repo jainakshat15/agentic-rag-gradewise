@@ -68,6 +68,38 @@ def banner(title: str, subtitle: str = "") -> None:
     console.print(Panel.fit(body, border_style="primary", padding=(0, 2)))
 
 
+def model_banner_text() -> str:
+    """The two banner lines: MODEL_MODE (+ models) and DATA_SIZE, e.g.
+
+    🧠 MODEL_MODE=cheap: gpt-6-luna (chat · grading · vision) · embeddings text-embedding-3-small · ...
+    📦 DATA_SIZE=full: 4 PDFs · all 10 questions (15 parts) · 10 students
+    """
+    from gradewise import datasets
+    from gradewise.config import get_settings
+
+    return f"{get_settings().describe_models()}\n{datasets.describe()}"
+
+
+def model_banner() -> None:
+    """Print which models and how much data this run uses (notebooks call it in their setup cell)."""
+    from gradewise.config import get_settings
+
+    s = get_settings()
+    keys = ", ".join(s.required_keys) or "no key (local models)"
+    hint = f"🔑 needs {keys} · switch with MODEL_MODE / DATA_SIZE in .env"
+    console.print(
+        Panel.fit(
+            f"[primary]{model_banner_text()}[/]\n[muted]{hint}[/]",
+            border_style="primary",
+            padding=(0, 2),
+        )
+    )
+    from gradewise import datasets
+
+    if s.is_free and not datasets.is_small():
+        warn("MODEL_MODE=free allows about 50 requests a day: set DATA_SIZE=small for a full run of the course.")
+
+
 def step(message: str) -> None:
     """One line per step of a pipeline: `step('Loading PDFs…')`."""
     console.print(f"[accent]▸[/] {message}")
@@ -98,7 +130,7 @@ def warn(message: str) -> None:
 
 
 def tip(message: str) -> None:
-    """A friendly aside: `tip('Set BUDGET_MODE=true to save money')`."""
+    """A friendly aside: `tip('Set DATA_SIZE=small to run on less data')`."""
     console.print(f"[accent]💡 {message}[/]")
 
 

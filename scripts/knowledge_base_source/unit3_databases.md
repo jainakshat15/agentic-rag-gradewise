@@ -7,7 +7,7 @@ unit: 3
 # Unit 3: Database Systems
 
 **CS201 Systems Fundamentals** · Northbridge Institute, School of Computing
-Course notes by Dr. Asha Raman · Edition 2026
+Course notes by Dr. Emma Carter · Edition 2026
 
 ## Learning outcomes
 

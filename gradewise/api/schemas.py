@@ -44,6 +44,11 @@ class Health(BaseModel):
     chat_model: str
     grading_model: str
     vision_model: str
+    embedding_model: str = ""
+    model_mode: str = Field(default="cheap", description="MODEL_MODE: cheap | free | custom")
+    data_size: str = Field(default="full", description="DATA_SIZE: full | small")
+    data_banner: str = Field(default="", description="datasets.describe(), e.g. '📦 DATA_SIZE=small: ...'")
+    required_keys: list[str] = Field(default_factory=list, description="API-key variables this mode needs")
     jobs: dict[str, int] = Field(default_factory=dict, description="Batches by state")
 
 
@@ -65,7 +70,7 @@ class IngestResponse(KnowledgeBaseInfo):
 
 # ── 📝 Exams ─────────────────────────────────────────────────────────────────────
 class ExamReview(BaseModel):
-    """The exam graph's state after upload: usually paused, waiting for Asha's approval."""
+    """The exam graph's state after upload: usually paused, waiting for Emma's approval."""
 
     exam_id: str
     thread_id: str
@@ -173,7 +178,7 @@ class BatchStatus(BaseModel):
 
 
 class ReviewDecision(BaseModel):
-    """Asha's decision on the pending review. Send only what applies to the pending type."""
+    """Emma's decision on the pending review. Send only what applies to the pending type."""
 
     student_id: str | None = Field(default=None, description="Optional safety check: must match the pending one")
     overrides: dict[str, float] = Field(default_factory=dict, description="human_review: {question_id: marks}")

@@ -27,7 +27,7 @@ from langchain_chroma import Chroma  # noqa: E402
 from langchain_core.documents import Document  # noqa: E402
 from langchain_text_splitters import RecursiveCharacterTextSplitter  # noqa: E402
 
-from gradewise import config  # noqa: E402
+from gradewise import config, datasets  # noqa: E402
 from gradewise.console import banner, step, success  # noqa: E402
 
 KNOWLEDGE_BASE = config.DATA_DIR / "knowledge-base"
@@ -41,7 +41,7 @@ def db_dir() -> Path:
 def fetch_documents() -> list[Document]:
     """One Document per PDF page, with just the file name and page number as metadata."""
     documents = []
-    for pdf in sorted(KNOWLEDGE_BASE.glob("*.pdf")):
+    for pdf in datasets.kb_files(KNOWLEDGE_BASE):  # 💡 all 4 PDFs, or unit1 + the handbook with DATA_SIZE=small
         with pymupdf.open(pdf) as book:
             for number, page in enumerate(book, start=1):
                 documents.append(Document(page.get_text(), metadata={"source": pdf.name, "page": number}))

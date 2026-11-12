@@ -10,7 +10,7 @@ header: "CS201 Systems Fundamentals · Midterm Examination · Question Paper"
 
 | Exam code | Date | Time allowed | Total marks | Examiner |
 |---|---|---|---|---|
-| CS201-MT-2026 | Autumn term 2026 | 90 minutes | 50 | Dr. Asha Raman |
+| CS201-MT-2026 | Autumn term 2026 | 90 minutes | 50 | Dr. Emma Carter |
 
 <div class="box">
 <p><b>INSTRUCTIONS TO CANDIDATES</b></p>

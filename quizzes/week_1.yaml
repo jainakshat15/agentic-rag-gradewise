@@ -90,14 +90,14 @@ questions:
     lecture: "Day 4 - Multimodal: Sending Images and PDF Pages to a Model"
     question: "Which message sends a rendered PDF page to a model in the provider-neutral LangChain 1.x format?"
     options:
-      - "HumanMessage(content=data_url)"
-      - "HumanMessage(content=[{\"type\": \"text\", \"text\": \"Read this page.\"}, {\"type\": \"image\", \"url\": data_url}])"
+      - "HumanMessage(content=image_b64)"
+      - "HumanMessage(content=[{\"type\": \"text\", \"text\": \"Read this page.\"}, {\"type\": \"image\", \"base64\": image_b64, \"mime_type\": \"image/jpeg\"}])"
       - "SystemMessage(content=[{\"type\": \"file\", \"path\": \"question_paper.pdf\"}])"
-      - "HumanMessage(content=\"Read this page.\", image=data_url)"
+      - "HumanMessage(content=\"Read this page.\", image=image_b64)"
     answer: 1
     explanations:
       - "A plain string content is sent as text: the model would receive 180,000 characters of base64, not a picture."
-      - "Correct. A list of content blocks, with an image block holding the data URL. Each provider package translates it (OpenAI into image_url, Anthropic into its own image source)."
+      - "Correct. A list of content blocks, with an image block holding the base64 bytes and their type. Each provider package translates it (OpenAI into input_image, Gemini into inline data), and base64 works everywhere, while a \"url\" block makes the Google package try to download it."
       - "There's no \"path\" block that reads files from your disk, and images belong in the user turn."
       - "HumanMessage has no image= argument; images go inside content as blocks."
   - id: w1-q7
@@ -142,7 +142,7 @@ questions:
       - "Pydantic validators can't do arithmetic"
       - "So that wrong totals are silently accepted"
       - "Because raising errors is slow"
-      - "So the model's answer is kept and the list of issues can be sent back to it to fix (self-correction), or shown to Asha"
+      - "So the model's answer is kept and the list of issues can be sent back to it to fix (self-correction), or shown to Emma"
     answer: 3
     explanations:
       - "A model_validator can run any Python, including sums (Day 3's StrictQuestion did exactly that)."

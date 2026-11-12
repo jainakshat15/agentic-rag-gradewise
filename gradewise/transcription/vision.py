@@ -21,7 +21,8 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from PIL import Image
 
 from gradewise.console import warn
-from gradewise.transcription.pdf_to_images import to_data_url
+from gradewise.errors import GradeWiseError
+from gradewise.transcription.pdf_to_images import image_block
 from gradewise.transcription.schemas import PageTranscription
 
 # 💡 THE PROMPT IS THE LESSON. Every rule below exists because a vision model, left alone,
@@ -75,11 +76,13 @@ def build_messages(
 
     💡 LangChain 1.x standard content blocks (verified against langchain-core 1.x):
          {"type": "text",  "text": "..."}
-         {"type": "image", "url": "data:image/jpeg;base64,..."}
-       (or {"type": "image", "base64": "...", "mime_type": "image/jpeg"}).
-       Each provider package translates these: OpenAI turns the image block into
-       {"type": "image_url", ...}, Anthropic into {"type": "image", "source": {...}}.
+         {"type": "image", "base64": "...", "mime_type": "image/jpeg"}   ← image_block(img)
+       Each provider package translates these: OpenRouter into {"type": "image_url", ...} with a data URL,
+       OpenAI (Responses API) into {"type": "input_image", ...}, Gemini into inline_data, Anthropic into
+       {"type": "image", ...}.
        So the same message works with every vision provider.
+    ⚠️ {"type": "image", "url": "data:..."} works on OpenRouter and OpenAI, but langchain-google-genai
+       tries to DOWNLOAD any "url", so it fails with Gemini (custom mode). The base64 form works everywhere.
     """
     text = PAGE_PROMPT.format(page_number=page_number, question_ids=", ".join(question_ids))
     if second_pass:
@@ -89,10 +92,15 @@ def build_messages(
         HumanMessage(
             content=[
                 {"type": "text", "text": text},
-                {"type": "image", "url": to_data_url(image)},
+                image_block(image),
             ]
         ),
     ]
+
+
+def _answered_by(raw: Any) -> str | None:
+    meta = getattr(raw, "response_metadata", None) or {}
+    return meta.get("model_name") or meta.get("model")
 
 
 def _usage(raw: Any) -> dict[str, int]:
@@ -107,7 +115,7 @@ def transcribe_page_with_usage(
     llm: Any = None,
     *,
     second_pass: bool = False,
-    retries: int = 1,
+    retries: int | None = None,
 ) -> tuple[PageTranscription, dict[str, int]]:
     """Like `transcribe_page`, but also returns the token usage the provider reported (for cost logging)."""
     if llm is None:
@@ -119,21 +127,33 @@ def transcribe_page_with_usage(
     structured = llm.with_structured_output(PageTranscription, include_raw=True)
     messages = build_messages(image, page_number, question_ids, second_pass=second_pass)
 
+    if retries is None:
+        # 🎲 MODEL_MODE=free: the router picks a different model each call, so allow one more try.
+        from gradewise.config import settings
+
+        retries = 2 if settings.is_free else 1
+
     error: Exception | None = None
-    usage = {"input_tokens": 0, "output_tokens": 0}
+    usage: dict[str, Any] = {"input_tokens": 0, "output_tokens": 0}
+    answered: str | None = None
     for _ in range(retries + 1):
         try:
             result = structured.invoke(messages)
-        except Exception as exc:  # noqa: BLE001  # ⚠️ network or parsing errors: retry once, then degrade
+        except GradeWiseError:
+            raise  # 💡 e.g. the free daily limit: retrying or degrading page by page won't help
+        except Exception as exc:  # noqa: BLE001  # ⚠️ network or parsing errors: retry, then degrade
             error = exc
             continue
         parsed = result.get("parsed") if isinstance(result, dict) else result
         if isinstance(result, dict):
             step_usage = _usage(result.get("raw"))
-            usage = {k: usage[k] + step_usage[k] for k in usage}
+            usage = {k: usage[k] + step_usage[k] for k in ("input_tokens", "output_tokens")}
+            answered = _answered_by(result.get("raw")) or answered
         if isinstance(parsed, dict):
             parsed = PageTranscription.model_validate(parsed)
         if isinstance(parsed, PageTranscription):
+            if answered:
+                usage["model"] = answered  # 💡 which model really read the page (openrouter/free varies)
             # ⚠️ Trust our page counter, not the model's: it can't see where the page sits in the PDF.
             return parsed.model_copy(update={"page_number": page_number}), usage
         error = (result.get("parsing_error") if isinstance(result, dict) else None) or ValueError("no output")

@@ -2,7 +2,7 @@
 
 # Week 5: The Grading Agent, Report Cards & Evaluation
 
-> **This week, GradeWise learns to grade, and we prove it's fair.** By Friday, it marks every answer on a script in parallel, criterion by criterion, with evidence from the course notes and guardrails the model can't talk its way past; writes report cards students can act on; pauses for Asha whenever a human should decide; and measures itself against a human examiner on a golden set.
+> **This week, GradeWise learns to grade, and we prove it's fair.** By Friday, it marks every answer on a script in parallel, criterion by criterion, with evidence from the course notes and guardrails the model can't talk its way past; writes report cards students can act on; pauses for Emma whenever a human should decide; and measures itself against a human examiner on a golden set.
 
 ## 🗓️ The week at a glance
 
@@ -32,7 +32,7 @@ uv run week5/project/report_qa.py                                      # chat wi
 uv run week5/evaluation/run_evals.py --fake                            # the baseline (free)
 uv run week5/evaluation/run_evals.py --grade                           # your real grader vs the human examiner
 ```
-Every script has a `--fake` mode. See [project/README.md](project/README.md) and [evaluation/README.md](evaluation/README.md) for what happens under the hood.
+Every script has a `--fake` mode. Short on time? Set `DATA_SIZE=small` in `.env` and everything here runs on a slice of the data: 2 PDFs (Unit 1 + the handbook), questions Q1–Q3 and 2 students (`student_01` and Sam). The notebooks print a 📦 banner when it's on. See [project/README.md](project/README.md) and [evaluation/README.md](evaluation/README.md) for what happens under the hood.
 
 | New this week | Lives in |
 |---|---|
@@ -46,11 +46,11 @@ Every script has a `--fake` mode. See [project/README.md](project/README.md) and
 | MAE, exact, within-1, QWK, CER/WER | `gradewise/evals/` |
 
 ## 💰 Expected API cost this week
-Most of this week runs **offline and free**: a keyword-only (BM25) copy of the knowledge base and clearly labelled stand-in graders let you watch every step (the `Send` fan-out, the human-review interrupt and resume, report cards, the eval tables) without a key. The real calls: a few cents each for Days 1–3, a few cents per student for Day 4's end-to-end run from a handwritten PDF, a few tens of cents for Day 5's three-student evaluation, and roughly a dollar to grade the full golden set (10 students × 15 questions) with the default `SMART_MODEL`. Costs depend heavily on your model: check your provider's pricing page, and `get_usage_metadata_callback()` (Day 4) tells you the tokens per answer. `--runs 3` (self-consistency) triples the grading cost. **LangSmith** has a free tier.
+Most of this week runs **offline and free**: a keyword-only (BM25) copy of the knowledge base and clearly labelled stand-in graders let you watch every step (the `Send` fan-out, the human-review interrupt and resume, report cards, the eval tables) without a key. The real calls, in the default `cheap` mode (`gpt-6-luna`, thinking harder for grading): a cent or two each for Days 1–3, about a cent per student for Day 4's end-to-end run from a handwritten PDF, a few cents for Day 5's three-student evaluation, and **well under a dollar** to grade the full golden set (10 students × 15 questions). With `MODEL_MODE=free` it's all **$0**, but a full run needs more than the free 50 requests a day, so pair it with `DATA_SIZE=small` (the golden set shrinks to 2 students × Q1–Q3), and expect marks to vary more as the free model changes per call. A stronger grader is one line away: `MODEL_MODE=custom` with `SMART_MODEL=openrouter:openai/gpt-6.1-terra` ($1 / $5 per million tokens). `get_usage_metadata_callback()` (Day 4) tells you the tokens per answer. `--runs 3` (self-consistency) triples the grading cost. **LangSmith** has a free tier.
 
 ## 🏋️ Quiz & exercise
 - **Quiz 5** on Udemy: 10 questions on LLM graders, `ToolRuntime`, `Send` and reducers, guardrails and prompt injection, interrupts, and when each metric lies.
-- **[week5_EXERCISE.ipynb](week5_EXERCISE.ipynb):** add a **moderation second-grader**: decide which marks are borderline, have an independent second grader re-mark only those, agree a mark or escalate to Asha, and prove on the golden set whether it's worth the cost. It starts in a free dry-run mode with two stand-ins.
+- **[week5_EXERCISE.ipynb](week5_EXERCISE.ipynb):** add a **moderation second-grader**: decide which marks are borderline, have an independent second grader re-mark only those, agree a mark or escalate to Emma, and prove on the golden set whether it's worth the cost. It starts in a free dry-run mode with two stand-ins.
 - Reference solutions for every lab exercise and the week exercise are in [solutions/](solutions/).
 
 ## 🆘 Stuck?

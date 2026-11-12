@@ -114,7 +114,7 @@ def test_batch_from_transcripts_pauses_streams_reviews_and_reports(client):
     batch_id = created.json()["batch_id"]
     assert created.json()["students"] == ["student_01", "student_02"]
 
-    # ⏸ The demo grader is unsure about low marks, so someone is flagged for Asha.
+    # ⏸ The demo grader is unsure about low marks, so someone is flagged for Emma.
     paused = wait_for(client, batch_id, "paused", "done")
     assert paused["status"] == "paused"
     pending = paused["pending"]
@@ -191,3 +191,45 @@ def test_knowledge_base_upload_and_ingest(client):
     listed = {kb["name"]: kb for kb in client.get("/knowledge-bases").json()}
     assert listed["notes"]["chunks"] == body["chunks"]
     assert client.post("/knowledge-bases/bad..name/documents", files=files).status_code == 422
+
+
+def test_batch_in_small_mode_grades_two_students_on_q1_to_q3(client, monkeypatch):
+    from gradewise.config import settings
+
+    monkeypatch.setattr(settings, "data_size", "small")
+    assert client.get("/health").json()["data_size"] == "small"
+    created = client.post(
+        "/batches", data={"exam_id": "cs_midterm", "from_transcripts": "true", "auto_approve": "true"}
+    )
+    assert created.status_code == 202, created.text
+    assert created.json()["students"] == ["student_01", "student_05"]  # 💡 Sam, not student_02
+    done = wait_for(client, created.json()["batch_id"], "done")
+    card = client.get("/reports/cs_midterm/student_05").json()
+    assert {r["question_id"] for r in card["results"]} == {"Q1", "Q2a", "Q2b", "Q3"}
+    assert all(p["questions_total"] == 4 for p in done["progress"])
+
+    # 💡 explicit form fields win over DATA_SIZE
+    created = client.post(
+        "/batches",
+        data={
+            "exam_id": "cs_midterm",
+            "from_transcripts": "true",
+            "auto_approve": "true",
+            "students": "3",
+            "questions": "Q5,Q6a",
+        },
+    )
+    assert created.json()["students"] == ["student_01", "student_02", "student_03"]
+    wait_for(client, created.json()["batch_id"], "done")
+    card = client.get("/reports/cs_midterm/student_03").json()
+    assert {r["question_id"] for r in card["results"]} == {"Q5", "Q6a"}
+    bad = client.post("/batches", data={"exam_id": "cs_midterm", "from_transcripts": "true", "questions": "Q99"})
+    assert bad.status_code in (400, 422)
+
+
+def test_include_course_notes_follows_data_size(client, monkeypatch):
+    from gradewise.config import settings
+
+    monkeypatch.setattr(settings, "data_size", "small")
+    body = client.post("/knowledge-bases/cs201/documents", data={"include_course_notes": "true"}).json()
+    assert body["files"] == ["cs201_course_handbook.pdf", "unit1_operating_systems.pdf"]

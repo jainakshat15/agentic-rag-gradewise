@@ -1,7 +1,7 @@
 """
 ╭──────────────────────────────────────────────────────────────────────╮
 │  🎓 Agentic RAG with LangChain & LangGraph                           │
-│  🔍 Week 6 · Day 2: The review queue, where Asha has the last word   │
+│  🔍 Week 6 · Day 2: The review queue, where Emma has the last word   │
 │                                                                      │
 │  What: every batch that paused for a human. For each flagged answer  │
 │        you see the question, what the student actually wrote, why    │

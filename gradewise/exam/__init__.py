@@ -4,7 +4,7 @@
 │  📍 Weeks 1 & 3: Exam understanding                                  │
 │                                                                      │
 │  What this package does                                              │
-│    Asha's exam pack (question paper + marking scheme + methodology)  │
+│    Emma's exam pack (question paper + marking scheme + methodology)  │
 │    becomes ONE validated ExamPaper that every later stage grades     │
 │    against.                                                          │
 │                                                                      │

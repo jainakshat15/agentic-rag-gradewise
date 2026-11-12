@@ -18,7 +18,7 @@ from gradewise.ui.common import demo, friendly_errors, status_pill
 
 styles.hero(
     "From a pile of scripts to report cards",
-    "GradeWise reads Asha's handwritten exam answers, grades them against the course notes with evidence, "
+    "GradeWise reads Emma's handwritten exam answers, grades them against the course notes with evidence, "
     "and asks her before anything uncertain becomes a mark.",
     kicker="Week 6 · Ship it",
 )

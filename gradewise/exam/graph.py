@@ -5,7 +5,7 @@
 │                                                                      │
 │  What this file does                                                 │
 │    The week 1 chain, rebuilt as a LangGraph workflow that checks     │
-│    its own work and asks Asha before saving anything:                │
+│    its own work and asks Emma before saving anything:                │
 │                                                                      │
 │      parse → extract → validate ─┬─ problems? → retry → extract      │
 │                                  └─ clean / out of tries             │
@@ -175,7 +175,7 @@ def build_exam_graph(
 
     def admin_review(state: ExamState) -> dict:
         # ⚠️ On resume, LangGraph re-runs this node FROM THE TOP, and interrupt() then returns
-        #    Asha's answer. So nothing before interrupt() may have side effects (no saving!).
+        #    Emma's answer. So nothing before interrupt() may have side effects (no saving!).
         paper = state.get("paper")
         decision = interrupt(
             {
@@ -188,7 +188,7 @@ def build_exam_graph(
         decision = decision if isinstance(decision, dict) else {"approved": bool(decision)}
         update: dict[str, Any] = {"approved": bool(decision.get("approved"))}
         if decision.get("edits"):
-            # 💡 Asha may hand back a patched exam: it must still pass the schema.
+            # 💡 Emma may hand back a patched exam: it must still pass the schema.
             try:
                 edited = ExamPaper.model_validate({**(paper or {}), **decision["edits"]})
             except ValidationError as exc:

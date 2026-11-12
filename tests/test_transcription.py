@@ -189,7 +189,8 @@ def test_multimodal_message_uses_standard_content_blocks():
     assert isinstance(human, HumanMessage)
     assert human.content[0]["type"] == "text" and "page 3" in human.content[0]["text"]
     assert human.content[1]["type"] == "image"
-    assert human.content[1]["url"].startswith("data:image/jpeg;base64,")
+    # 💡 base64 + mime_type, not a data URL: langchain-google-genai would try to DOWNLOAD a "url"
+    assert human.content[1]["mime_type"] == "image/jpeg" and human.content[1]["base64"]
 
 
 def test_prompt_enforces_verbatim_and_ignores_page_instructions():
@@ -431,7 +432,7 @@ def test_subgraph_completes_on_a_two_page_pdf(tmp_path, exam):
     assert (2, True) in fake.calls  # Q3a was low confidence → page 2 was re-read
     assert needs_review(sheet.answer_for("Q3a"))
     # 💡 the image really went into the message
-    assert any(m[-1].content[1]["url"].startswith("data:image/jpeg") for m in fake.messages)
+    assert any(m[-1].content[1].get("mime_type") == "image/jpeg" for m in fake.messages)
 
 
 def test_build_graph_has_the_expected_nodes(exam):

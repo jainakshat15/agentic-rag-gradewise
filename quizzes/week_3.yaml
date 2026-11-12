@@ -56,7 +56,7 @@ questions:
       - "The model's temperature is too high"
     answer: 0
     explanations:
-      - "Correct! A checkpointer stores state per thread. Call invoke(..., {\"configurable\": {\"thread_id\": \"asha\"}}) both times; LangGraph will actually raise an error asking for a thread_id when a checkpointer is set without one."
+      - "Correct! A checkpointer stores state per thread. Call invoke(..., {\"configurable\": {\"thread_id\": \"emma\"}}) both times; LangGraph will actually raise an error asking for a thread_id when a checkpointer is set without one."
       - "InMemorySaver is a complete checkpointer on its own; SqliteSaver is just a persistent alternative."
       - "It does: a checkpointer plus a thread_id gives it short-term memory, and you then send only the new message each turn."
       - "Temperature affects randomness, not whether earlier messages are included in the next call."
@@ -123,11 +123,11 @@ questions:
 
   - id: w3-q9
     lecture: "Day 4 - Checkpointers and Human-in-the-Loop with `interrupt()`"
-    question: "In admin_review, a developer saves the exam to the database and THEN calls decision = interrupt(...). After Asha resumes with Command(resume={\"approved\": True}), the exam is saved twice. Why?"
+    question: "In admin_review, a developer saves the exam to the database and THEN calls decision = interrupt(...). After Emma resumes with Command(resume={\"approved\": True}), the exam is saved twice. Why?"
     options:
       - "Command(resume=...) always runs the whole graph again from START"
       - "SqliteSaver writes every row twice"
-      - "On resume, LangGraph re-runs the interrupted node from the top, and interrupt() then returns Asha's answer. So code before interrupt() runs again: keep side effects after it (or in a later node like store)"
+      - "On resume, LangGraph re-runs the interrupted node from the top, and interrupt() then returns Emma's answer. So code before interrupt() runs again: keep side effects after it (or in a later node like store)"
       - "interrupt() can only be used with InMemorySaver"
     answer: 2
     explanations:
@@ -141,12 +141,12 @@ questions:
     question: "The extraction still has problems after max_attempts tries. What does GradeWise's exam graph do, and why?"
     options:
       - "Raises an error and discards the extraction, so nothing flawed is ever seen"
-      - "Sends the exam to admin_review anyway, WITH the list of problems, so a human decides; nothing is stored unless Asha approves"
+      - "Sends the exam to admin_review anyway, WITH the list of problems, so a human decides; nothing is stored unless Emma approves"
       - "Stores the best attempt automatically and logs a warning"
       - "Keeps retrying until the problems disappear"
     answer: 1
     explanations:
-      - "Throwing away the work wastes the model calls already paid for, and Asha could often fix the problem in seconds."
+      - "Throwing away the work wastes the model calls already paid for, and Emma could often fix the problem in seconds."
       - "Correct! after_validate routes to admin_review when the exam is clean OR out of tries. A human always decides, and the store node only runs on approval."
       - "Silently saving a flawed exam would mean grading students against wrong criteria: exactly what the human review exists to prevent."
       - "An unbounded loop could cost a fortune and never end. The attempts / max_attempts counter in the state guarantees an upper bound."

@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import datetime as _dt
 import importlib
+import json
 import os
 import platform
 import shutil
@@ -47,6 +48,7 @@ KEY_PACKAGES = {
     "langchain": "langchain",
     "langgraph": "langgraph",
     "langchain_openai": "langchain-openai",
+    "langchain_openrouter": "langchain-openrouter",
     "langchain_chroma": "langchain-chroma",
     "chromadb": "chromadb",
     "pymupdf": "pymupdf",
@@ -56,9 +58,35 @@ KEY_PACKAGES = {
     "ipykernel": "ipykernel",
 }
 
+# 💰 MODEL_MODE → (key it needs, models). Keep in step with gradewise/config.py (this file can't import it).
+MODES = {
+    "cheap": (
+        "OPENROUTER_API_KEY",
+        "openrouter:openai/gpt-6-luna (chat · grading · vision) + openrouter:openai/text-embedding-3-small",
+    ),
+    "free": (
+        "OPENROUTER_API_KEY",
+        "openrouter:openrouter/free (the router picks a free model per call) + "
+        "openrouter:nvidia/nemotron-3.5-embed-1b:free",
+    ),
+}
+PROVIDER_KEYS = {
+    "openrouter": "OPENROUTER_API_KEY",
+    "openai": "OPENAI_API_KEY",
+    "anthropic": "ANTHROPIC_API_KEY",
+    "google_genai": "GOOGLE_API_KEY",
+}
+CUSTOM_DEFAULTS = {
+    "CHAT_MODEL": "openrouter:openai/gpt-6-luna",
+    "SMART_MODEL": "openrouter:openai/gpt-6-luna",
+    "VISION_MODEL": "openrouter:openai/gpt-6-luna",
+    "EMBEDDING_MODEL": "openrouter:openai/text-embedding-3-small",
+}
+QUOTES = "\"' "  # 💡 what we strip from values: quotes and spaces
+
 # Hosts we need to reach (host → why)
 HOSTS = {
-    "api.openai.com": "OpenAI API (default model provider)",
+    "openrouter.ai": "OpenRouter API (MODEL_MODE=cheap and free)",
     "api.smith.langchain.com": "LangSmith tracing (optional)",
     "pypi.org": "Installing packages with uv",
     "github.com": "git pull for course updates",
@@ -189,29 +217,76 @@ class Diagnostics:
             return
         self.ok(".env file found")
         values = self._parse_env(env_path)
-        key = values.get("OPENAI_API_KEY", "")
-        provider = values.get("CHAT_MODEL", "openai:").split(":", 1)[0]
-        if not key and provider == "openai":
-            self.error("OPENAI_API_KEY is empty", "Paste your key into .env and SAVE the file")
-        elif key:
-            problems = []
-            if key != key.strip():
-                problems.append("it has spaces around it")
-            if key.startswith(('"', "'")):
-                problems.append("it is wrapped in quotes")
-            if not key.strip("\"' ").startswith("sk-"):
-                problems.append("it doesn't start with 'sk-'")
-            if problems:
-                self.warning(
-                    f"OPENAI_API_KEY looks unusual: {', '.join(problems)}",
-                    "The line should look like: OPENAI_API_KEY=sk-proj-abc123...",
-                )
-            else:
-                self.ok(f"OPENAI_API_KEY is set ({self._mask(key)})")
-        for name in ("ANTHROPIC_API_KEY", "GOOGLE_API_KEY", "LANGSMITH_API_KEY"):
-            if values.get(name):
+        mode, needed = self._mode(values)
+        if mode not in ("cheap", "free", "custom"):
+            self.error(
+                f"MODEL_MODE={mode!r} isn't a mode GradeWise knows",
+                "Use MODEL_MODE=cheap (gpt-6-luna), free (openrouter/free) or custom",
+            )
+            return
+        size = (values.get("DATA_SIZE") or "full").strip(QUOTES).lower() or "full"
+        if size not in ("full", "small"):
+            self.error(f"DATA_SIZE={size!r} isn't valid", "Use DATA_SIZE=full or DATA_SIZE=small")
+        if "BUDGET_MODE" in values:
+            self.log("BUDGET_MODE is no longer used (MODEL_MODE replaced it): you can delete that line")
+        self.ok(f"MODEL_MODE={mode} · DATA_SIZE={size}")
+        if mode in MODES:
+            self.log(f"  Models: {MODES[mode][1]}")
+        else:
+            for var, default in CUSTOM_DEFAULTS.items():
+                self.log(f"  {var}={values.get(var) or default}")
+        if size == "small":
+            self.log("  Small data: 2 PDFs · Q1–Q3 · 2 students (DATA_SIZE=full for everything)")
+        self.log(f"  This mode needs: {', '.join(needed) or 'no key (local models only)'}")
+        for name in needed:
+            self._check_key_format(name, values.get(name, ""), mode)
+        others = ("OPENROUTER_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GOOGLE_API_KEY", "LANGSMITH_API_KEY")
+        for name in others:
+            if name not in needed and values.get(name):
                 self.ok(f"{name} is set ({self._mask(values[name])})")
-        self.log(f"Models: CHAT_MODEL={values.get('CHAT_MODEL', '(default)')}")
+
+    def _check_key_format(self, name: str, key: str, mode: str) -> None:
+        """Is the key this mode needs present, and does it look like a key?"""
+        if not key:
+            fix = {
+                "OPENROUTER_API_KEY": "Create a key at https://openrouter.ai/keys, paste it into .env, SAVE",
+            }.get(name, "Paste your key into .env and SAVE the file")
+            self.error(f"{name} is empty, but MODEL_MODE={mode} needs it", fix)
+            return
+        problems = []
+        if key != key.strip():
+            problems.append("it has spaces around it")
+        if key.startswith(('"', "'")):
+            problems.append("it is wrapped in quotes")
+        prefix = {
+            "OPENROUTER_API_KEY": "sk-or-",
+            "OPENAI_API_KEY": "sk-",
+            "GOOGLE_API_KEY": "AI",
+            "ANTHROPIC_API_KEY": "sk-ant-",
+        }.get(name)
+        if prefix and not key.strip(QUOTES).startswith(prefix):
+            problems.append(f"it doesn't start with '{prefix}'")
+        if problems:
+            example = {"OPENROUTER_API_KEY": "sk-or-v1-abc123...", "OPENAI_API_KEY": "sk-proj-abc123..."}.get(
+                name, "..."
+            )
+            self.warning(f"{name} looks unusual: {', '.join(problems)}", f"The line should look like: {name}={example}")
+        else:
+            self.ok(f"{name} is set ({self._mask(key)})")
+
+    @staticmethod
+    def _mode(values: dict[str, str]) -> tuple[str, list[str]]:
+        """(MODEL_MODE, [key variables it needs]) from the .env values."""
+        mode = (values.get("MODEL_MODE") or os.getenv("MODEL_MODE") or "cheap").strip(QUOTES).lower() or "cheap"
+        if mode in MODES:
+            return mode, [MODES[mode][0]]
+        needed: list[str] = []
+        for var, default in CUSTOM_DEFAULTS.items():
+            provider = (values.get(var) or default).split(":", 1)[0]
+            key = PROVIDER_KEYS.get(provider)
+            if key and key not in needed:
+                needed.append(key)
+        return mode, needed
 
     def check_conflicting_envs(self) -> None:
         self.section(5, "Conflicting Python environments")
@@ -282,31 +357,52 @@ class Diagnostics:
         if proxy:
             self.log(f"HTTPS proxy in use: {proxy}")
 
-    def check_openai_key_works(self) -> None:
-        self.section(9, "Does the OpenAI key actually work? (free call, no tokens used)")
+    def check_key_works(self) -> None:
+        self.section(9, "Does your key actually work? (free call, no tokens used)")
         values = self._parse_env(REPO_ROOT / ".env") if (REPO_ROOT / ".env").exists() else {}
-        key = (values.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY", "")).strip("\"' ")
-        if not key:
-            self.warning("Skipped: no OpenAI key to test", "Fine if you use another provider")
+        mode, needed = self._mode(values)
+        if "OPENROUTER_API_KEY" not in needed:
+            self.log(f"Skipped: MODEL_MODE={mode} doesn't use OpenRouter (custom keys aren't tested here)")
             return
-        request = urllib.request.Request("https://api.openai.com/v1/models", headers={"Authorization": f"Bearer {key}"})
+        key = (values.get("OPENROUTER_API_KEY") or os.getenv("OPENROUTER_API_KEY", "")).strip(QUOTES)
+        if not key:
+            self.warning("Skipped: no OpenRouter key to test", "Paste it into .env first (section 4 above)")
+            return
+        # 💡 GET /key describes the key itself: free to call, no tokens, and the key goes in a header
+        #    (never in the URL, never printed).
+        request = urllib.request.Request("https://openrouter.ai/api/v1/key", headers={"Authorization": f"Bearer {key}"})
         try:
             with urllib.request.urlopen(request, timeout=10) as response:
-                if response.status == 200:
-                    self.ok("OpenAI accepted your key")
+                info = json.loads(response.read().decode("utf-8")).get("data", {})
         except urllib.error.HTTPError as exc:
-            if exc.code == 401:
-                self.error("OpenAI rejected the key (401)", "Create a new key and paste it into .env")
-            elif exc.code == 429:
-                self.warning(
-                    "OpenAI says 429: usually no credit on the account",
-                    "Add credit at platform.openai.com/settings/organization/billing",
+            if exc.code in (401, 403):
+                self.error(
+                    f"OpenRouter rejected the key ({exc.code})", "Create a new key at https://openrouter.ai/keys"
                 )
+            elif exc.code == 429:
+                self.warning("OpenRouter says 429 (too many requests)", "Wait a minute and run this again")
             else:
-                self.warning(f"OpenAI returned HTTP {exc.code}")
-        except OSError as exc:
-            self.warning("Couldn't contact OpenAI to test the key")
+                self.warning(f"OpenRouter returned HTTP {exc.code}")
+            return
+        except (OSError, ValueError) as exc:
+            self.warning("Couldn't contact OpenRouter to test the key")
             self.log(f"  {exc!r}")
+            return
+        self.ok("OpenRouter accepted your key")
+        free_tier = info.get("is_free_tier")
+        if free_tier is not None:
+            self.log(f"  Account has bought credits: {'no' if free_tier else 'yes'}")
+        if mode == "cheap" and free_tier:
+            self.warning(
+                "MODEL_MODE=cheap needs OpenRouter credits, and this account has none yet",
+                "Add a few dollars at https://openrouter.ai/settings/credits, or use MODEL_MODE=free",
+            )
+        if mode == "free":
+            self.log("  Free models: about 50 requests a day (1,000 once you've bought $10 of credits ever)")
+
+    def check_openai_key_works(self) -> None:
+        """💡 The old name, kept so older notes still work."""
+        self.check_key_works()
 
     def check_extras(self) -> None:
         self.section(10, "Extras: write access, LangSmith, Ollama")
@@ -367,7 +463,7 @@ class Diagnostics:
             self.check_virtualenv,
             self.check_uv,
             self.check_network,
-            self.check_openai_key_works,
+            self.check_key_works,
             self.check_extras,
         ):
             try:

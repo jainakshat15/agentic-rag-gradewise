@@ -3,7 +3,7 @@
 │  🎓 Agentic RAG with LangChain & LangGraph                           │
 │  🧱 Week 5 · Day 5: gradewise.evals, is GradeWise any good?          │
 │                                                                      │
-│  What: numbers that tell Asha whether to trust the marks.            │
+│  What: numbers that tell Emma whether to trust the marks.            │
 │      grading_eval.py       → MAE, exact %, within-1 %, QWK           │
 │      transcription_eval.py → CER / WER per student and question      │
 │      run_all()             → both, printed and saved to output/evals │

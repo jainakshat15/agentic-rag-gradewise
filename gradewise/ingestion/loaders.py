@@ -125,10 +125,16 @@ def load_pdf(path: Path | str) -> list[Document]:
     return docs
 
 
-def load_directory(kb_dir: Path | str) -> list[Document]:
-    """Load every PDF in a folder (sorted by name, so runs are reproducible)."""
+def load_directory(kb_dir: Path | str, *, small: bool | None = None) -> list[Document]:
+    """Load the PDFs in a folder (sorted by name, so runs are reproducible).
+
+    📦 DATA_SIZE=small loads only unit1 + the handbook from the course folder (see gradewise/datasets.py);
+       pass small=False to load everything anyway.
+    """
+    from gradewise import datasets
+
     kb_dir = Path(kb_dir)
-    pdfs = sorted(kb_dir.glob("*.pdf"))
+    pdfs = datasets.kb_files(kb_dir, small=small)
     if not pdfs:
         raise DataNotFoundError(f"No PDFs found in {kb_dir}.")
     return [doc for pdf in pdfs for doc in load_pdf(pdf)]

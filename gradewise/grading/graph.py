@@ -23,11 +23,13 @@
 from __future__ import annotations
 
 import operator
+from collections.abc import Sequence
 from typing import Annotated, Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send
 
+from gradewise.config import max_concurrency
 from gradewise.grading.events import emit
 from gradewise.grading.grader import grade_answer, make_grading_agent
 from gradewise.grading.guardrails import DEFAULT_REVIEW_THRESHOLD
@@ -37,6 +39,7 @@ from gradewise.schemas.grading import GradeResult
 from gradewise.schemas.report import ReportCard
 
 MAX_PARALLEL_QUESTIONS = 4  # 🚀 PRO: cap concurrent grading calls to stay under your provider's rate limit
+#                             (MODEL_MODE=free lowers it to 2: see config.max_concurrency)
 
 
 class GradingState(TypedDict, total=False):
@@ -153,10 +156,19 @@ def grade_sheet(
     review_threshold: float = DEFAULT_REVIEW_THRESHOLD,
     use_tools: bool = True,
     graph: Any = None,
+    questions: Sequence[str] | None = None,
 ) -> ReportCard:
-    """Grade a whole AnswerSheet and return its ReportCard (strengths/improvements are filled in later)."""
+    """Grade a whole AnswerSheet and return its ReportCard (strengths/improvements are filled in later).
+
+    📦 questions: only grade these question IDs. Default: all, or Q1–Q3 when DATA_SIZE=small.
+    """
+    from gradewise import datasets
+
+    if questions is not None or datasets.is_small():
+        exam = datasets.subset_exam(exam, questions)
     app = graph or build_grading_graph(
         llm, retriever, consistency_runs=consistency_runs, review_threshold=review_threshold, use_tools=use_tools
     )
-    state = app.invoke({"exam": exam, "sheet": sheet}, config={"max_concurrency": MAX_PARALLEL_QUESTIONS})
+    config = {"max_concurrency": max_concurrency(MAX_PARALLEL_QUESTIONS)}
+    state = app.invoke({"exam": exam, "sheet": sheet}, config=config)
     return state["report"]

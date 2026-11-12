@@ -47,7 +47,7 @@ ICONS = {
 
 def demo() -> bool:
     """The sidebar toggle (app.py). Every API call passes it, so one switch flips the whole dashboard."""
-    return bool(st.session_state.get("demo", True))
+    return bool(st.session_state.get("demo_mode", True))
 
 
 def show_error(err: ApiError) -> None:

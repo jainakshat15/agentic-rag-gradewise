@@ -5,7 +5,8 @@
 │                                                                      │
 │  What this file does                                                 │
 │    The shell around every page: page config, the theme's CSS, the    │
-│    sidebar (API status + the 🧪 demo-mode toggle), and navigation.   │
+│    sidebar (API status, 🧪 demo toggle, MODEL_MODE + DATA_SIZE       │
+│    chips), and navigation.                                           │
 │    Streamlit re-runs this file top to bottom on EVERY click, then    │
 │    runs the page you're on.                                          │
 │                                                                      │
@@ -36,27 +37,59 @@ try:
 except ApiError as err:
     health = None
     health_error = err
+st.session_state["health"] = health  # 💡 pages read MODEL_MODE / DATA_SIZE from here
+
+
+def mode_chip(h: dict) -> str:
+    """'cheap · gpt-6-luna' / 'free · openrouter/free' / 'custom · <chat model>' (from GET /health)."""
+    mode = h.get("model_mode", "cheap")
+    chat = str(h.get("chat_model", "")).split(":", 1)[-1]
+    short = chat.rsplit("/", 1)[-1]  # 'openai/gpt-6-luna' → 'gpt-6-luna'
+    label = {"cheap": f"cheap · {short}", "free": "free · openrouter/free"}.get(mode, f"custom · {chat}")
+    return styles.pill(label, {"cheap": "violet", "free": "cyan"}.get(mode, "muted"))
+
 
 # 💡 Demo mode starts as the server's default (GRADEWISE_DEMO) or, with no API key, ON.
-if "demo" not in st.session_state:
-    st.session_state["demo"] = bool(health and (health["demo"] or not health["provider_key"])) or health is None
+# ⚠️ The truth lives in a plain key ("demo_mode"), not in the toggle's own key: Streamlit may drop a widget's
+#    state when you switch pages, which silently turned demo mode OFF (and broke every no-key call).
+if "demo_mode" not in st.session_state:
+    st.session_state["demo_mode"] = bool(health and (health["demo"] or not health["provider_key"])) or health is None
+
+
+def _sync_demo() -> None:
+    st.session_state["demo_mode"] = st.session_state["demo_toggle"]
+
 
 with st.sidebar:
     st.html('<div class="gw-brand">🎓 Grade<span>Wise</span></div>')
-    st.caption("Agentic RAG grading for Asha's CS201 class at the Northbridge Institute.")
+    st.caption("Agentic RAG grading for Emma's CS201 class at the Northbridge Institute.")
     st.toggle(
         "🧪 Demo mode",
-        key="demo",
+        value=st.session_state["demo_mode"],
+        key="demo_toggle",
+        on_change=_sync_demo,
         help="Offline fakes instead of real models: free, no API key, and the marks mean nothing. "
         "Demo data lives in output/demo/, apart from real grading.",
     )
     if health:
-        mode = styles.pill("demo", "amber") if st.session_state["demo"] else styles.pill("live models", "green")
-        st.html(f"{styles.pill('API online', 'green')}{mode}")
-        if not st.session_state["demo"]:
+        mode = styles.pill("demo", "amber") if st.session_state["demo_mode"] else styles.pill("live models", "green")
+        chips = mode_chip(health)
+        if health.get("data_size") == "small":
+            chips += styles.pill("small data", "amber")
+        st.html(f"{styles.pill('API online', 'green')}{mode}<br>{chips}")
+        if health.get("data_size") == "small" and health.get("data_banner"):
+            st.caption(health["data_banner"] + " · switch with DATA_SIZE=full in .env")
+        if health.get("model_mode") == "free" and health.get("data_size") != "small":
+            st.caption("⚠️ Free models allow about 50 requests a day: set DATA_SIZE=small in .env.")
+        if not st.session_state["demo_mode"]:
             st.caption(f"Grading with `{health['grading_model']}` · vision `{health['vision_model']}`")
             if not health["provider_key"]:
-                st.warning("No API key is configured: turn demo mode on, or add a key to .env.", icon="🔑")
+                needed = " / ".join(health.get("required_keys") or []) or "an API key"
+                st.warning(
+                    f"MODEL_MODE={health.get('model_mode', 'cheap')} needs {needed} in .env: add it, "
+                    "or turn demo mode on.",
+                    icon="🔑",
+                )
         running = health["jobs"].get("running", 0)
         paused = health["jobs"].get("paused", 0)
         if running or paused:

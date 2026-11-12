@@ -2,7 +2,7 @@
 
 # Week 2: RAG: Building GradeWise's Knowledge Base
 
-> **This week, GradeWise learns the course material.** Last week it learned to understand an exam. This week it reads Asha's four CS201 PDFs, cuts them into well-labelled chunks, stores them in a vector database, and learns to find the right paragraph for any question, with a citation. And because "it seems to work" isn't good enough for marking, by Friday you'll have **numbers** that say how well it works.
+> **This week, GradeWise learns the course material.** Last week it learned to understand an exam. This week it reads Emma's four CS201 PDFs, cuts them into well-labelled chunks, stores them in a vector database, and learns to find the right paragraph for any question, with a citation. And because "it seems to work" isn't good enough for marking, by Friday you'll have **numbers** that say how well it works.
 
 ## 🗓️ The week at a glance
 
@@ -25,6 +25,8 @@ uv run week2/pro_implementation/answer.py "What are the four necessary condition
 uv run week2/evaluation/eval.py --compare          # simple vs pro, MRR / nDCG per category
 ```
 
+💡 **Short on time?** Set `DATA_SIZE=small` in `.env`: ingestion then reads just 2 PDFs (Unit 1 + the handbook) and the evaluations use their first 5 questions. The notebooks print a 📦 banner when it's on.
+
 The code lives in three places:
 | Folder | What's in it |
 |---|---|
@@ -38,7 +40,7 @@ The reusable pieces are in `gradewise/ingestion/` (loaders, chunking, store, pip
 Every notebook runs offline: the vector store demos use LangChain's `DeterministicFakeEmbedding` in a temp folder (the plumbing is real, the similarity is random), and **BM25 needs no embeddings at all**, so `uv run week2/evaluation/eval.py --offline --pipeline bm25` gives real scores for free. The few cells that call a real model say so, and show a friendly error without a key.
 
 ## 💰 Expected API cost this week
-A few cents at most. Embedding the whole knowledge base with `text-embedding-3-small` costs about **$0.0003**, and re-running ingestion on unchanged PDFs costs **$0**. The optional LLM judge (`eval.py --answers --limit 10`) costs a few cents.
+A few cents at most in the default `cheap` mode, and **$0** with `MODEL_MODE=free`. Embedding the whole knowledge base with `text-embedding-3-small` costs about **$0.0003**, and re-running ingestion on unchanged PDFs costs **$0**. The optional LLM judge (`eval.py --answers --limit 10`) costs a cent or two. The store is keyed by embedding model, so switching modes builds a fresh one and never mixes the two.
 
 ## 🆘 Stuck?
 - Setup problems: run `uv run setup/diagnostics.py`, then see [setup/troubleshooting.ipynb](../setup/troubleshooting.ipynb)

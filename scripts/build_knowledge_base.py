@@ -100,7 +100,7 @@ def render_pdf(source: Path) -> Path:
     doc.set_metadata(
         {
             "title": meta.get("title", source.stem),
-            "author": "Dr. Asha Raman (fictional), for the GradeWise course",
+            "author": "Dr. Emma Carter (fictional), for the GradeWise course",
             "subject": meta.get("subject", ""),
             "keywords": f"CS201; unit {meta.get('unit', '')}; Northbridge Institute",
             "creator": "scripts/build_knowledge_base.py",

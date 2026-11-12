@@ -1,6 +1,6 @@
 # 📏 Week 2 Evaluation: is our retrieval actually any good?
 
-> *"If you can't measure it, you can't improve it."* Asha is about to trust GradeWise with her students' marks, so "it seems to work" isn't good enough. This folder turns "seems to work" into numbers.
+> *"If you can't measure it, you can't improve it."* Emma is about to trust GradeWise with her students' marks, so "it seems to work" isn't good enough. This folder turns "seems to work" into numbers.
 
 ## What's here
 | File | What it does |
@@ -41,6 +41,8 @@ uv run week2/evaluation/eval.py --answers --limit 10   # also judge generated an
 uv run week2/evaluation/eval.py --offline --compare    # no API key: checks the plumbing only
 ```
 `--compare` builds whichever vector store is missing first (the pro ingest is idempotent, so it costs nothing if nothing changed). Retrieval-only runs cost a fraction of a cent in embeddings. `--answers` calls your chat model twice per question (answer + judge), so start with `--limit 10`.
+
+💡 **Fast & cheap run:** with `DATA_SIZE=small` in `.env`, `eval.py` scores only the first 5 questions (all from Unit 1, which the small knowledge base keeps), and the ingest scripts embed only `unit1_operating_systems.pdf` and the handbook. `--limit` and `--row` still choose for you. With `MODEL_MODE=free`, the embeddings and the judge run on OpenRouter's free models for $0; keep `DATA_SIZE=small` then, because free mode allows only about 50 requests a day.
 
 ⚠️ `--offline` uses fake embeddings in a separate folder (`output/offline_eval/`). **BM25 scores are real** (keyword search needs no embeddings), but dense, hybrid and simple scores come from random vectors and are meaningless: they only prove everything is wired up.
 

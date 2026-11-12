@@ -151,6 +151,19 @@ def to_data_url(img: Image.Image, fmt: str = "JPEG", quality: int = 85) -> str:
     return f"data:image/{fmt.lower()};base64,{encoded}"
 
 
+def image_block(img: Image.Image, fmt: str = "JPEG", quality: int = 85) -> dict[str, str]:
+    """A LangChain 1.x image content block that EVERY provider accepts:
+    {"type": "image", "base64": "...", "mime_type": "image/jpeg"}.
+
+    ⚠️ Prefer this to {"type": "image", "url": to_data_url(img)}: OpenAI accepts a data URL there, but
+       langchain-google-genai treats any "url" as a web address to download, so Gemini (custom mode)
+       fails on it. The base64 form works for OpenRouter, OpenAI, Gemini and Anthropic alike.
+    """
+    url = to_data_url(img, fmt=fmt, quality=quality)
+    mime, encoded = url[len("data:") :].split(";base64,", 1)
+    return {"type": "image", "base64": encoded, "mime_type": mime}
+
+
 def estimate_image_tokens(img: Image.Image) -> int:
     """A rough token estimate for one image, using OpenAI's "high detail" tile rule.
 

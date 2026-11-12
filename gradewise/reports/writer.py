@@ -13,7 +13,7 @@
 │      save_report_files(...)        → both, into output/reports/      │
 │                                                                      │
 │  ⚠️ Every piece of student text is HTML-escaped. A student who       │
-│     writes <script> in an answer must not run code in Asha's browser.│
+│     writes <script> in an answer must not run code in Emma's browser.│
 │  ⏮ Built on: schemas/report.py, grading/                            │
 │  ⏭ Used by: orchestrator.py (write_report node), the week 6 UI      │
 ╰──────────────────────────────────────────────────────────────────────╯

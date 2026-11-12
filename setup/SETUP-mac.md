@@ -64,13 +64,25 @@ Each Part ends with a ✅ **Checkpoint**. Please don't skip them!
 
 ---
 
-## Part 4: Your OpenAI API key
+## Part 4: Your OpenRouter API key
 
-1. Sign in at https://platform.openai.com/ → **Settings → Billing** → add the minimum credit (about $5). The whole course costs under $10.
-2. **Settings → Limits** → set a monthly budget.
-3. **API keys → Create new secret key** → copy it right away.
+GradeWise reaches every model through **[OpenRouter](https://openrouter.ai)**, so you need **one key**, `OPENROUTER_API_KEY`, for both modes. One line in `.env`, `MODEL_MODE`, then picks the models:
+- `cheap` (the default): OpenAI's **gpt-6-luna**, $0.10 / $0.50 per 1M tokens. Needs a few dollars of OpenRouter credits.
+- `free`: **openrouter/free**, OpenRouter's free-models router. $0 and no credits, but rate-limited.
 
-> 💡 Prefer Anthropic, Gemini (free tier) or local Ollama models? See [SWAP_PROVIDER.md](SWAP_PROVIDER.md) after finishing this guide.
+1. Sign up at https://openrouter.ai (a Google or GitHub login works).
+2. Go to https://openrouter.ai/keys → **Create Key**. Name it `gradewise-course`, then **copy it right away**: it starts with `sk-or-` and you can't see it again later.
+3. **For `cheap` mode, add credits** at https://openrouter.ai/settings/credits. A few dollars is plenty: week 1 costs a few cents, and GradeWise prints the cost of each run. OpenRouter adds a small fee when you buy credits. **`free` mode needs no credits.**
+4. **Set a credit limit on the key** (on the keys page) so there are never surprises. Agentic systems are less predictable than ordinary code, which is the point, but it means it's wise to cap spending.
+
+> ⚠️ **Free-mode caveats** (`MODEL_MODE=free`):
+> 1. **Rate limits:** 20 requests a minute and **50 requests a day** until your account has ever bought $10 of credits (then 1,000 a day).
+> 2. **Use it with `DATA_SIZE=small`:** a full class run makes hundreds of calls.
+> 3. **Quality and data:** the router picks a different free model each call, so results vary and an occasional structured-output failure is normal (GradeWise retries). Free providers may log prompts or train on them: fine for this course's fictional data, never OK for real student data. In your [OpenRouter privacy settings](https://openrouter.ai/settings/privacy) you may need to enable **"free endpoints that may train on inputs"**.
+>
+> Details, and the optional stronger grader: [SWAP_PROVIDER.md](SWAP_PROVIDER.md).
+
+> 💡 Prefer OpenAI, Anthropic or Gemini with their own keys, or local Ollama models (`MODEL_MODE=custom`)? See [SWAP_PROVIDER.md](SWAP_PROVIDER.md) after finishing this guide.
 
 ---
 
@@ -79,10 +91,17 @@ Each Part ends with a ✅ **Checkpoint**. Please don't skip them!
 ```bash
 cp .env.example .env
 ```
-Open `.env` in Cursor (files starting with `.` are hidden in Finder but visible in Cursor), then paste:
+Open `.env` in Cursor (files starting with `.` are hidden in Finder but visible in Cursor), then paste your key after `OPENROUTER_API_KEY=`:
 ```
-OPENAI_API_KEY=sk-proj-abc123...
+OPENROUTER_API_KEY=sk-or-v1-abc123...
 ```
+That's all `cheap` mode needs. For the $0 route, also change these two lines near the top:
+```
+MODEL_MODE=free
+DATA_SIZE=small
+```
+(`DATA_SIZE=small` uses 2 PDFs, questions Q1–Q3 and 2 students: also handy in `cheap` mode for a quick run.)
+
 No quotes, no spaces. **Save with <kbd>Cmd</kbd>+<kbd>S</kbd>!**
 
 ✅ **Checkpoint:**

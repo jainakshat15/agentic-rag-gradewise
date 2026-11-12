@@ -1,6 +1,6 @@
 # 🚀 Deploying GradeWise
 
-> You've got GradeWise running on your laptop. Now let's put it on the internet, so Asha can use it from the staff room and you can drop a link in your portfolio. This guide covers three hosts, from "free and five minutes" to "production-shaped", plus LangGraph Platform as a different route altogether.
+> You've got GradeWise running on your laptop. Now let's put it on the internet, so Emma can use it from the staff room and you can drop a link in your portfolio. This guide covers three hosts, from "free and five minutes" to "production-shaped", plus LangGraph Platform as a different route altogether.
 
 Before you start, check locally that the image builds and runs:
 
@@ -10,8 +10,8 @@ docker compose up --build        # then open http://localhost:8501
 
 ## 🔑 First, secrets (read this whichever host you pick)
 
-- **Your keys never go in the image or in git.** `.dockerignore` excludes `.env`, and `.gitignore` excludes it too. Every host below has a "secrets" or "environment variables" screen: put `OPENAI_API_KEY` (and any model settings) there.
-- **The variables GradeWise reads:** `OPENAI_API_KEY` (or `ANTHROPIC_API_KEY` / `GOOGLE_API_KEY`), `CHAT_MODEL`, `SMART_MODEL`, `VISION_MODEL`, `EMBEDDING_MODEL`, `BUDGET_MODE`, `GRADEWISE_DEMO`, `API_HOST`, `API_PORT`, and for the UI, `API_URL`.
+- **Your keys never go in the image or in git.** `.dockerignore` excludes `.env`, and `.gitignore` excludes it too. Every host below has a "secrets" or "environment variables" screen: put `OPENROUTER_API_KEY` (and any model settings) there.
+- **The variables GradeWise reads:** `MODEL_MODE` (`cheap`, `free` or `custom`), `DATA_SIZE` (`full` or `small`), `OPENROUTER_API_KEY` (both cheap and free mode), plus `OPENAI_API_KEY`, `GOOGLE_API_KEY` or `ANTHROPIC_API_KEY` only if a custom-mode model calls that provider directly, `CHAT_MODEL`, `SMART_MODEL`, `VISION_MODEL`, `EMBEDDING_MODEL` (read only when `MODEL_MODE=custom`), `GRADEWISE_DEMO`, `API_HOST`, `API_PORT`, and for the UI, `API_URL`.
 - **A public demo should run with `GRADEWISE_DEMO=true`.** Otherwise anyone with the link spends your money. If you deploy with real keys, put a login in front (see *Hardening* below) and set a monthly spending limit in your provider's dashboard.
 - **Student work is personal data.** Real answer sheets need consent, a host in the right region, and a plan for deleting them. Day 5's "Responsible AI grading" lecture covers this; the synthetic class is the safe thing to show the world.
 
@@ -38,9 +38,9 @@ Spaces run one container on one port, which suits demo mode perfectly: run the A
    ```
 4. In the Space's README front matter set `sdk: docker` and `app_port: 7860`.
 5. Push. The build log appears in the Space; when it says *Running*, your dashboard is live.
-6. Want real models? **Settings → Variables and secrets → New secret** `OPENAI_API_KEY`, and set `GRADEWISE_DEMO=false`. ⚠️ A public Space with your key is public spending: make the Space private, or keep demo mode.
+6. Want real models? **Settings → Variables and secrets → New secret** `OPENROUTER_API_KEY`, and set `GRADEWISE_DEMO=false`. ⚠️ A public Space with your key is public spending: make the Space private, or keep demo mode.
 
-**Cost:** free CPU tier (2 vCPU, 16 GB RAM). The free tier sleeps after inactivity and its disk is wiped on restart; persistent storage is a paid add-on. Fine for a portfolio demo, not for Asha's real marks.
+**Cost:** free CPU tier (2 vCPU, 16 GB RAM). The free tier sleeps after inactivity and its disk is wiped on restart; persistent storage is a paid add-on. Fine for a portfolio demo, not for Emma's real marks.
 
 ---
 
@@ -49,7 +49,7 @@ Spaces run one container on one port, which suits demo mode perfectly: run the A
 1. Push the repo to GitHub.
 2. Render dashboard → **New → Web Service** → your repo → **Runtime: Docker**, Dockerfile path `docker/Dockerfile`.
    - Name it `gradewise-api`. Leave the start command empty (the image's `CMD` starts the API).
-   - **Environment:** `API_PORT=10000` (Render routes to the port in `$PORT`, 10000 by default) and your secrets (`OPENAI_API_KEY`, ...), or `GRADEWISE_DEMO=true`.
+   - **Environment:** `API_PORT=10000` (Render routes to the port in `$PORT`, 10000 by default) and your secrets (`OPENROUTER_API_KEY`, ...), or `GRADEWISE_DEMO=true`.
    - **Disks → Add disk**, mount path `/app/output`, 1 GB. (Disks need a paid instance type.)
    - **Health check path:** `/health`.
 3. **New → Web Service** again, same repo and Dockerfile, named `gradewise-ui`:
@@ -67,7 +67,7 @@ Spaces run one container on one port, which suits demo mode perfectly: run the A
 ## Option 3 · Fly.io (containers close to your users, volumes included)
 
 1. Install `flyctl` and log in: `fly auth login`.
-2. From the repo root: `fly launch --dockerfile docker/Dockerfile --no-deploy`. Pick a region near Asha. This writes a `fly.toml`.
+2. From the repo root: `fly launch --dockerfile docker/Dockerfile --no-deploy`. Pick a region near Emma. This writes a `fly.toml`.
 3. Edit `fly.toml`: define the two processes, the internal port and the volume:
 
    ```toml
@@ -100,7 +100,7 @@ Spaces run one container on one port, which suits demo mode perfectly: run the A
 
    ```bash
    fly volumes create gradewise_output --size 1
-   fly secrets set OPENAI_API_KEY=sk-...        # or: fly secrets set GRADEWISE_DEMO=true
+   fly secrets set OPENROUTER_API_KEY=sk-or-...      # or: fly secrets set GRADEWISE_DEMO=true
    fly deploy
    ```
 5. `fly open` opens the dashboard; `fly logs` shows both processes.
@@ -113,7 +113,10 @@ Spaces run one container on one port, which suits demo mode perfectly: run the A
 
 The server is the small bill. The model calls are the real one, and you already measured them in week 5. Roughly, per student with the defaults: one vision call per page, one grading call per question (two or three with tool calls), and one feedback call. For a class of 30 on a 15-question exam, that's hundreds of calls.
 
-- `BUDGET_MODE=true` runs every step on `CHAT_MODEL`: the cheapest switch you have.
+- The default `MODEL_MODE=cheap` runs every step on `openai/gpt-6-luna` via OpenRouter ($0.10 in / $0.50 out per 1M tokens; grading just uses a higher reasoning effort), so even hundreds of calls stay cheap. Measure one real batch (week 5's cost log) before you quote a figure.
+- `MODEL_MODE=free` runs on `openrouter/free`, OpenRouter's router over free models, for $0 with the same key and no credits. It allows only 20 requests a minute and 50 a day (1,000 a day once the account has ever bought $10 of credits), so a deployment can't mark a real class on it: use it with `DATA_SIZE=small` for a demo. The model changes per call, so marks vary, and free providers may log or train on prompts: fine for the synthetic class, **never** for real students' work.
+- Want a stronger grader? `MODEL_MODE=custom` with `SMART_MODEL=openrouter:openai/gpt-6.1-terra` ($1 / $5 per 1M) upgrades only the marking step.
+- `DATA_SIZE=small` (2 PDFs · Q1–Q3 · 2 students) is a cheap smoke test for a fresh deployment: switch it back to `full` before real marking.
 - **Grade from transcripts** when you're iterating on the grader: the vision step is usually the most expensive part.
 - `consistency_runs` multiplies the grading cost: keep it at 1 unless you need the stability.
 - Set a hard monthly cap in your provider's billing settings **before** you share a link.
@@ -157,4 +160,4 @@ and the platform gives you, ready-made, most of what we built by hand this week:
 
 ---
 
-🎓 Shipped it? Share the link in [`community_contributions/`](../../community_contributions/README.md). Asha would be proud.
+🎓 Shipped it? Share the link in [`community_contributions/`](../../community_contributions/README.md). Emma would be proud.

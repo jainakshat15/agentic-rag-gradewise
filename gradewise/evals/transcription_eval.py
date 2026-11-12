@@ -9,7 +9,7 @@
 │    (data/answer-sheets/synthetic/transcripts.json):                  │
 │                                                                      │
 │      CER → character error rate: catches "semafore" vs "semaphore"   │
-│      WER → word error rate: easier to explain to Asha                │
+│      WER → word error rate: easier to explain to Emma                │
 │                                                                      │
 │    per student, per question, and overall. A grade can only be as    │
 │    good as the transcription it was based on, so this runs first.    │
@@ -158,9 +158,23 @@ def run_transcription_eval(
     show: bool = True,
     save: bool = True,
 ) -> dict[str, Any]:
-    """Evaluate `sheets` (default: every AnswerSheet JSON in output/transcriptions/) against transcripts.json."""
+    """Evaluate `sheets` (default: every AnswerSheet JSON in output/transcriptions/) against transcripts.json.
+
+    📦 DATA_SIZE=small (and no `sheets` passed): only student_01 + student_05 × Q1–Q3 are scored.
+    """
+    from gradewise import datasets
+
     truth = load_ground_truth(truth_path)
-    sheets = load_sheets(folder) if sheets is None else sheets
+    if sheets is None:
+        sheets = load_sheets(folder)
+        if datasets.is_small():
+            keep_students = set(datasets.synthetic_students())
+            keep_questions = set(datasets.exam_question_ids())
+            sheets = {
+                sid: sheet.model_copy(update={"answers": [a for a in sheet.answers if a.question_id in keep_questions]})
+                for sid, sheet in sheets.items()
+                if sid in keep_students
+            }
     if not sheets:
         raise DataNotFoundError(
             f"No transcribed answer sheets found in {folder}.",

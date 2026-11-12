@@ -1,7 +1,7 @@
 """
 ╭──────────────────────────────────────────────────────────────────────╮
 │  🎓 Agentic RAG with LangChain & LangGraph                           │
-│  📍 Week 3 · Day 5: Showing Asha what GradeWise understood           │
+│  📍 Week 3 · Day 5: Showing Emma what GradeWise understood           │
 │                                                                      │
 │  What this file does                                                 │
 │    exam_summary(paper)        → a small JSON-able dict (sent with    │

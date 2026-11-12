@@ -4,7 +4,7 @@
 │  📍 Week 5 · Day 3: "Chat with results"                              │
 │                                                                      │
 │  What this file does                                                 │
-│    An agent Asha can ask about her class, once grading is done:      │
+│    An agent Emma can ask about her class, once grading is done:      │
 │      "Which question did the class struggle with most?"              │
 │      "Why did student_04 lose marks on Q7a?"                         │
 │                                                                      │
@@ -39,7 +39,7 @@ from gradewise.schemas.report import ReportCard
 pd = import_pandas()  # 💡 = `import pandas as pd`, with a fix for locked-down Windows
 
 QA_SYSTEM_PROMPT = """\
-You are GradeWise's results assistant. You help Asha, the CS201 teacher at the Northbridge Institute, understand
+You are GradeWise's results assistant. You help Emma, the CS201 teacher at the Northbridge Institute, understand
 how her class did on the exam "{exam_id}".
 
 - ALWAYS use the tools; never guess a mark. Numbers must come from class_statistics or get_student_report.

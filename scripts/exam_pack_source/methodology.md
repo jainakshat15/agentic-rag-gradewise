@@ -6,7 +6,7 @@ header: "CS201 Systems Fundamentals · Midterm Examination · Marking Methodolog
 # CS201 Midterm: Marking Methodology
 
 **Northbridge Institute, School of Computing** · CS201 Systems Fundamentals · Exam code CS201-MT-2026
-Examiner: Dr. Asha Raman · For use with the *Marking Scheme*
+Examiner: Dr. Emma Carter · For use with the *Marking Scheme*
 
 ## Purpose
 

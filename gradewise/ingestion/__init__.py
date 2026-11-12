@@ -17,14 +17,16 @@
 from gradewise.ingestion.chunking import chunk_documents
 from gradewise.ingestion.loaders import load_directory, load_pdf
 from gradewise.ingestion.pipeline import IngestReport, ingest
-from gradewise.ingestion.store import get_vectorstore, vector_db_dir
+from gradewise.ingestion.store import embedding_key, get_vectorstore, store_dir, vector_db_dir
 
 __all__ = [
     "IngestReport",
     "chunk_documents",
+    "embedding_key",
     "get_vectorstore",
     "ingest",
     "load_directory",
     "load_pdf",
+    "store_dir",
     "vector_db_dir",
 ]

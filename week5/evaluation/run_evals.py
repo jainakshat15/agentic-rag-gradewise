@@ -9,11 +9,13 @@
 │  Run:  uv run week5/evaluation/run_evals.py                          │
 │          → evaluates the reports already stored for cs_midterm       │
 │        uv run week5/evaluation/run_evals.py --grade                  │
-│          → first grades the 10 synthetic students from               │
-│            transcripts.json with your grading model (💰 ~150 calls)  │
+│          → first grades the synthetic students from transcripts.json │
+│            with your grading model (💰 ~150 answers, well under $1)  │
 │        uv run week5/evaluation/run_evals.py --fake                   │
 │          → the same, free, with the offline keyword grader           │
 │        uv run week5/evaluation/run_evals.py --only transcription     │
+│  📦 DATA_SIZE=small: 2 students × Q1–Q3 (8 answers): only a check    │
+│     that it runs, the metrics are far too noisy to trust             │
 │  Output: rich tables + output/evals/grading_eval.json, ...           │
 │  ⏮ Built on: gradewise/evals   ⏭ Used by: week5/day5 notebook       │
 ╰──────────────────────────────────────────────────────────────────────╯
@@ -30,6 +32,7 @@ import typer
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from gradewise import datasets  # noqa: E402
 from gradewise.config import OUTPUT_DIR  # noqa: E402
 from gradewise.console import banner, step, success, tip, warn  # noqa: E402
 from gradewise.errors import GradeWiseError  # noqa: E402
@@ -41,9 +44,12 @@ FAKE_DIR = OUTPUT_DIR / "fake_run"
 
 
 def grade_synthetic(exam_id: str, *, fake: bool) -> list:
-    """Grade every synthetic student from the ground-truth transcripts (so only the GRADER is tested)."""
-    exam = resolve_exam(exam_id, quiet=True)
-    sheets = sheets_from_transcripts(exam)
+    """Grade the synthetic students from the ground-truth transcripts (so only the GRADER is tested).
+
+    📦 DATA_SIZE decides who and what: 10 students × every question, or 2 students × Q1–Q3 when small.
+    """
+    exam = datasets.subset_exam(resolve_exam(exam_id, quiet=True))
+    sheets = sheets_from_transcripts(exam, students=datasets.synthetic_students())
     build: dict[str, Any] = {"feedback": "rules", "pdf": False}
     if fake:
         from langchain_core.embeddings import DeterministicFakeEmbedding
@@ -79,6 +85,9 @@ def main(
     golden: Annotated[Path, typer.Option(help="Golden labels CSV")] = GOLDEN_CSV,
 ) -> None:
     banner("Week 5 · Evaluation", "GradeWise vs the human examiner")
+    step(datasets.describe())
+    if datasets.is_small():
+        warn("DATA_SIZE=small: these metrics rest on a handful of answers. Use them to check it runs, not to judge.")
     summary: dict[str, Any] = {}
     try:
         if only in ("all", "transcription"):

@@ -43,9 +43,17 @@ def demo_from_env() -> bool:
 
 
 def has_provider_key() -> bool:
-    """True if any provider key is configured (or the provider is local Ollama, which needs none)."""
-    keys = (settings.openai_api_key, settings.anthropic_api_key, settings.google_api_key)
-    return any(k and k.get_secret_value() for k in keys) or settings.provider == "ollama"
+    """True if every key your MODEL_MODE needs is configured (cheap and free → OPENROUTER_API_KEY).
+
+    💡 A mode that only uses local Ollama models needs no key at all.
+    """
+    import os
+
+    for env in settings.required_keys:
+        secret = getattr(settings, env.lower(), None)
+        if not ((secret and secret.get_secret_value()) or os.getenv(env)):
+            return False
+    return True
 
 
 def _dotenv_value(name: str) -> str | None:

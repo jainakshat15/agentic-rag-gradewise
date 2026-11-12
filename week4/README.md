@@ -31,6 +31,8 @@ uv run week4/project/evidence.py                  # evidence passages for a dead
 ```
 See [project/README.md](project/README.md) for what happens under the hood.
 
+💡 **Short on time?** Set `DATA_SIZE=small` in `.env` and everything here runs on a slice of the data: 2 PDFs (Unit 1 + the handbook), questions Q1–Q3 and 2 students (`student_01` and Sam). The notebooks print a 📦 banner when it's on.
+
 | New this week | Lives in |
 |---|---|
 | Agentic RAG graph (route, retrieve, grade, rewrite, answer) | `gradewise/rag/agentic_rag.py` |
@@ -42,11 +44,11 @@ See [project/README.md](project/README.md) for what happens under the hood.
 | The transcription subgraph | `gradewise/transcription/graph.py` |
 
 ## 💰 Expected API cost this week
-Most of this week runs **offline and free**: a keyword-only (BM25) copy of the knowledge base and fake, scripted models let you watch every graph work without a key. The real calls are small: a few cents for Days 1–4, about **1–3 cents per answer sheet** for the transcription demo, and well under **$0.50** for the exercise on three sheets with two models. With `BUDGET_MODE=true`, the vision model falls back to your (cheaper) `CHAT_MODEL`: make sure it accepts images.
+Most of this week runs **offline and free**: a keyword-only (BM25) copy of the knowledge base and fake, scripted models let you watch every graph work without a key. The real calls are small in the default `cheap` mode (`gpt-6-luna`, which reads images): a few cents for Days 1–4, **well under a cent per answer sheet** for the transcription demo, and a few cents for the exercise on three sheets with two models. With `MODEL_MODE=free`, OpenRouter routes each page to a free model that accepts images, for **$0**; mind the 50-requests-a-day limit and use `DATA_SIZE=small`.
 
 ## 🏋️ Quiz & exercise
 - **Quiz 4** on Udemy: 10 questions on agentic RAG, grounding, DPI and tokens, faithful transcription and confidence.
-- **[week4_EXERCISE.ipynb](week4_EXERCISE.ipynb):** run the same synthetic sheets through two vision models, score them with CER and WER, log tokens, cost and time, and write Asha a recommendation. It starts in a free dry-run mode.
+- **[week4_EXERCISE.ipynb](week4_EXERCISE.ipynb):** run the same synthetic sheets through two vision models, score them with CER and WER, log tokens, cost and time, and write Emma a recommendation. It starts in a free dry-run mode.
 - Reference solutions for every lab exercise and the week exercise are in [solutions/](solutions/).
 
 ## 🆘 Stuck?

@@ -236,7 +236,7 @@ def self_consistency(runs: Sequence[GradeResult], question: Question, *, max_spr
     - the justification and feedback come from the run closest to the median total;
     - if the totals spread by more than `max_spread` marks, the answer goes to a human.
 
-    ⚠️ Don't count on temperature=0 for repeatable marks: langchain-openai drops it for gpt-5-family models,
+    ⚠️ Don't count on temperature=0 for repeatable marks: reasoning models like gpt-6-luna reject it (we drop it),
        and even at 0 providers aren't fully deterministic. Repeat-and-take-the-median works everywhere.
     💡 Why the median and not the mean? With marks 3, 3, 0 the mean says 2 (a mark no run gave);
        the median says 3, and the spread (3) tells us to send it for review.

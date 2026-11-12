@@ -5,7 +5,7 @@
 │                                                                      │
 │  What this script does                                               │
 │    The week 1 extractor, rebuilt as a LangGraph workflow that        │
-│    checks its own work and asks Asha before saving anything:         │
+│    checks its own work and asks Emma before saving anything:         │
 │                                                                      │
 │      parse → extract → validate ─┬─ problems? → retry → extract      │
 │                                  └─ clean / out of tries             │
@@ -105,7 +105,7 @@ def admin_review(state: ExamState) -> dict:
     # ⚠️ When we resume, this node runs again FROM THE TOP and interrupt() returns the answer.
     #    So never do anything with side effects (like saving) before the interrupt() line.
     decision = interrupt({"paper": state.get("paper"), "problems": state.get("problems", [])})
-    # ✋ TODO (week3_EXERCISE): let Asha send back {"edits": {...}} and apply them here.
+    # ✋ TODO (week3_EXERCISE): let Emma send back {"edits": {...}} and apply them here.
     return {"approved": bool(decision.get("approved")) and bool(state.get("paper"))}
 
 
@@ -113,7 +113,7 @@ def store(state: ExamState) -> dict:
     from gradewise.db import save_exam  # 💡 the SQLite database in output/gradewise.db
 
     paper = ExamPaper.model_validate(state["paper"])
-    save_exam(paper, approved_by="Asha")
+    save_exam(paper, approved_by="Emma")
     out = OUTPUT_DIR / f"{paper.exam_id}.json"
     out.write_text(json.dumps(paper.model_dump(), indent=2, ensure_ascii=False), encoding="utf-8")
     success("Exam approved and stored", {"Database": "output/gradewise.db", "JSON": out})
@@ -146,7 +146,7 @@ def build_graph(checkpointer):
     return builder.compile(checkpointer=checkpointer)  # ⚠️ interrupt() needs a checkpointer
 
 
-def ask_asha(payload: dict, auto_approve: bool) -> dict:
+def ask_emma(payload: dict, auto_approve: bool) -> dict:
     """Show the extracted exam and get a decision (from the keyboard, or automatically)."""
     if payload["paper"]:
         print_exam_summary(ExamPaper.model_validate(payload["paper"]), payload["problems"])
@@ -155,7 +155,7 @@ def ask_asha(payload: dict, auto_approve: bool) -> dict:
     if auto_approve:
         tip("--auto-approve is on: approving without asking.")
         return {"approved": True}
-    answer = input("🧑‍🏫 Asha, approve this exam? [y/N] ").strip().lower()
+    answer = input("🧑‍🏫 Emma, approve this exam? [y/N] ").strip().lower()
     return {"approved": answer in {"y", "yes"}}
 
 
@@ -187,8 +187,8 @@ def main() -> int:
     else:
         result = graph.invoke({"exam_id": args.exam_id, "max_attempts": args.max_attempts}, config)
 
-    while "__interrupt__" in result:  # ⏸ the graph is paused, waiting for Asha
-        decision = ask_asha(result["__interrupt__"][0].value, args.auto_approve)
+    while "__interrupt__" in result:  # ⏸ the graph is paused, waiting for Emma
+        decision = ask_emma(result["__interrupt__"][0].value, args.auto_approve)
         result = graph.invoke(Command(resume=decision), config)
 
     if not result.get("approved"):

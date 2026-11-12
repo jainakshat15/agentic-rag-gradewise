@@ -19,19 +19,22 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from gradewise.config import DATA_DIR, settings
+from gradewise import datasets
+from gradewise.config import DATA_DIR, get_settings
 from gradewise.console import step, success, tip
 from gradewise.errors import DataNotFoundError
 from gradewise.ingestion.chunking import chunk_documents
 from gradewise.ingestion.loaders import load_pdf
-from gradewise.ingestion.store import DEFAULT_COLLECTION, get_vectorstore, vector_db_dir
+from gradewise.ingestion.store import DEFAULT_COLLECTION, get_vectorstore, store_dir
+from gradewise.pricing import EMBEDDING_PRICES, embedding_cost, format_cost  # noqa: F401 (re-export)
 
-# 💰 US$ per million tokens (Nov 2026 list prices). Unknown models fall back to "small".
-EMBEDDING_PRICES = {"text-embedding-3-small": 0.02, "text-embedding-3-large": 0.13}
+# 💰 EMBEDDING_PRICES (US$ per million tokens) lives in gradewise/pricing.py, re-exported here.
+#    openai/text-embedding-3-small $0.02 · nvidia/nemotron-3.5-embed-1b:free $0 (via OpenRouter).
 BATCH_SIZE = 100  # ⚠️ embedding APIs cap how many texts one request may carry
 
 
@@ -75,11 +78,9 @@ def _stored_hashes(store) -> dict[str, tuple[str, list[str]]]:
 
 
 def estimate_cost(texts: list[str], model: str | None = None) -> tuple[int, float]:
-    """Rough embedding cost: ~4 characters per token for English text."""
+    """Rough embedding cost: ~4 characters per token for English text. $0 on the free tier."""
     tokens = sum(len(t) for t in texts) // 4
-    name = (model or settings.embedding_model).split(":", 1)[-1]
-    price = EMBEDDING_PRICES.get(name, EMBEDDING_PRICES["text-embedding-3-small"])
-    return tokens, tokens / 1_000_000 * price
+    return tokens, embedding_cost(tokens, model or get_settings().embedding_model)
 
 
 def ingest(
@@ -89,15 +90,25 @@ def ingest(
     reset: bool = False,
     persist_dir: Path | str | None = None,
     quiet: bool = False,
+    files: Sequence[str | Path] | None = None,
 ) -> IngestReport:
-    """Ingest every PDF in `kb_dir` into the Chroma collection `collection`.
+    """Ingest the PDFs in `kb_dir` into the Chroma collection `collection`.
 
     Safe to run again and again: unchanged files are skipped, changed files have their
     old chunks deleted before the new ones go in, and deleted files are removed.
     `reset=True` wipes the collection first and rebuilds everything.
+
+    📦 Which PDFs: `files` if you pass it (names or paths inside `kb_dir`), otherwise
+       `datasets.kb_files(kb_dir)`: all of them, or just unit1 + the handbook when DATA_SIZE=small.
     """
     kb_dir = Path(kb_dir)
-    pdfs = sorted(kb_dir.glob("*.pdf"))
+    if files is not None:
+        pdfs = sorted(kb_dir / Path(f).name for f in files)
+        missing = [p.name for p in pdfs if not p.exists()]
+        if missing:
+            raise DataNotFoundError(f"Not found in {kb_dir}: {', '.join(missing)}")
+    else:
+        pdfs = datasets.kb_files(kb_dir)
     if not pdfs:
         raise DataNotFoundError(f"No PDFs found in {kb_dir}.")
     say = (lambda _msg: None) if quiet else step
@@ -111,7 +122,9 @@ def ingest(
     stored = _stored_hashes(store)
 
     # 🧹 Files that were in the store but are gone from the folder.
-    current = {p.name for p in pdfs}
+    # 💡 "Gone" means deleted from the FOLDER, not just left out by DATA_SIZE=small: switching to
+    #    small never throws away chunks you already paid to embed.
+    current = {p.name for p in kb_dir.glob("*.pdf")}
     for source, (_h, ids) in stored.items():
         if source not in current:
             store.delete(ids=ids)
@@ -160,8 +173,10 @@ def ingest(
                 "Chunks added": report.chunks_added,
                 "Chunks in store": report.chunks_total,
                 "Skipped": ", ".join(report.skipped) or "none",
-                "Embedding cost": f"≈ {report.est_tokens:,} tokens ≈ ${report.est_cost_usd:.5f}",
-                "Stored in": str(Path(persist_dir) if persist_dir else vector_db_dir()),
+                "Embedding cost": f"≈ {report.est_tokens:,} tokens ≈ "
+                f"{format_cost(report.est_cost_usd, None if embeddings else get_settings().embedding_model)}",
+                "Data size": datasets.describe(),
+                "Stored in": str(store_dir(persist_dir, embeddings) if embeddings else store_dir(persist_dir)),
             },
             next_step="uv run week2/pro_implementation/answer.py",
         )

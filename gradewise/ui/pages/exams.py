@@ -5,7 +5,7 @@
 │                                                                      │
 │  What: upload the exam pack (question paper, marking scheme,         │
 │        methodology, optional model answers). The week 3 graph        │
-│        extracts it and PAUSES; Asha checks the questions and         │
+│        extracts it and PAUSES; Emma checks the questions and         │
 │        approves. Only approved exams are stored and graded against.  │
 │  ⏮ Built on: POST /exams, POST /exams/{id}/approve, GET /exams      │
 ╰──────────────────────────────────────────────────────────────────────╯

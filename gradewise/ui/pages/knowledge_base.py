@@ -38,12 +38,26 @@ with st.form("ingest"):
     c1, c2 = st.columns([2, 3])
     name = c1.text_input("Collection name", value="cs201", help="Letters, digits, '-' and '_'.")
     files = c2.file_uploader("Course-note PDFs", type=["pdf"], accept_multiple_files=True)
-    notes = st.checkbox("Also add the four CS201 course-note PDFs that ship with the course", value=not kbs)
+    small = (st.session_state.get("health") or {}).get("data_size") == "small"
+    which = (
+        "2 of the CS201 course-note PDFs (unit1 + handbook: DATA_SIZE=small)"
+        if small
+        else ("the four CS201 course-note PDFs")
+    )
+    notes = st.checkbox(f"Also add {which} that ship with the course", value=not kbs)
     reset = st.checkbox("Reset the collection first (re-embed everything)")
     if demo():
         st.caption("🧪 Demo mode: fake embeddings (free). Keyword search works; semantic search is noise.")
     else:
-        st.caption("💰 Real embeddings: a few cents for the CS201 notes. Unchanged files are never re-embedded.")
+        free = (st.session_state.get("health") or {}).get("model_mode") == "free"
+        st.caption(
+            (
+                "💰 Free embeddings (MODEL_MODE=free): $0."
+                if free
+                else "💰 Real embeddings: well under a cent for the CS201 notes."
+            )
+            + " Unchanged files are never re-embedded."
+        )
     submitted = st.form_submit_button("📥 Upload and ingest", type="primary")
 
 if submitted:

@@ -3,7 +3,7 @@ title: "RAG: Building GradeWise's Knowledge Base"
 questions:
   - id: w2-q1
     lecture: "Day 1 - Why RAG? Hallucinations, Knowledge Cut-offs and Grounding"
-    question: "A model confidently invents a CS201 marking rule that isn't in Asha's handbook. What does RAG change to fix this?"
+    question: "A model confidently invents a CS201 marking rule that isn't in Emma's handbook. What does RAG change to fix this?"
     options:
       - "It fine-tunes the model's weights on the handbook so it remembers the rules"
       - "It retrieves the relevant handbook passages and puts them in the prompt, so the model answers from them"
@@ -14,7 +14,7 @@ questions:
       - "That's fine-tuning, a different (slower, costlier) technique. RAG never changes the model's weights."
       - "Correct. RAG changes what the model SEES, not what it is: retrieve, augment the prompt, then generate, with citations back to the source."
       - "Temperature 0 makes output more repeatable, not more truthful. A deterministic model can hallucinate deterministically."
-      - "No model, however new, was trained on Asha's private course notes written this term."
+      - "No model, however new, was trained on Emma's private course notes written this term."
 
   - id: w2-q2
     lecture: "Day 1 - Embeddings Visually Explained: Meaning as Geometry"

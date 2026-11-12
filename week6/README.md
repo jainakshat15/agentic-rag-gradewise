@@ -2,7 +2,7 @@
 
 # Week 6: Ship It: App, Docker, Deployment & Wrap-Up
 
-> **This week, GradeWise becomes a real product.** By Friday, Asha opens a browser, uploads a pile of scripts, watches them being graded live, decides on the uncertain marks in a review queue, reads every report card and asks questions about the results. It all runs with one command, `docker compose up`, and it's ready to deploy. Then we talk honestly about grading responsibly with AI, run the whole capstone in one cell, and celebrate the end of the course. 🎓
+> **This week, GradeWise becomes a real product.** By Friday, Emma opens a browser, uploads a pile of scripts, watches them being graded live, decides on the uncertain marks in a review queue, reads every report card and asks questions about the results. It all runs with one command, `docker compose up`, and it's ready to deploy. Then we talk honestly about grading responsibly with AI, run the whole capstone in one cell, and celebrate the end of the course. 🎓
 
 ## 🗓️ The week at a glance
 
@@ -14,7 +14,7 @@
 | 4 | [day4.ipynb](day4.ipynb) | One command to run it all: Docker Compose · deploying GradeWise (Render / Fly.io / HF Spaces) | The Dockerfile and compose file line by line, a build-cache simulator, the real health check, and a deploy pre-flight checklist |
 | 5 | [day5.ipynb](day5.ipynb) | Responsible AI grading · 🏆 capstone showcase · where next · your portfolio piece · the final roadmap and thank you | **Project day:** principle-by-principle responsible AI, the whole product in one cell, an MCP sketch, and the finish line |
 
-⏱️ About **2 h 20 m** of video (14 lectures), plus the labs at your own pace.
+🎬 **14 lectures** this week, plus the labs at your own pace.
 
 ## 🧱 This week's GradeWise milestone
 FastAPI backend + Streamlit dashboard (review queue, live progress, report viewer, chat), in Docker, ready to deploy.
@@ -44,7 +44,7 @@ The full guide to the app is [project/README.md](project/README.md), and deployi
 | Tests that drive the whole API offline | `tests/test_api.py` |
 
 ## 💰 Expected API cost this week
-**$0.** Every notebook runs offline in 🧪 demo mode: the real API, background jobs, interrupts, streaming and storage, with stand-in models. When you switch demo mode off in the dashboard (with a key in `.env`), costs are the same as week 5's orchestrator: a few cents per student with the defaults, much less with `from_transcripts` or `BUDGET_MODE=true`. Hosting: Hugging Face Spaces is free for a demo-mode portfolio app; Render or Fly.io with a persistent disk is roughly $5–10/month. **Deploy public demos with `GRADEWISE_DEMO=true`**, and set a spending cap before you share a link with real models behind it.
+**$0.** Every notebook runs offline in 🧪 demo mode: the real API, background jobs, interrupts, streaming and storage, with stand-in models. When you switch demo mode off in the dashboard (with a key in `.env`), costs are the same as week 5's orchestrator: about a cent per student in the default `cheap` mode, less with `from_transcripts`, and $0 with `MODEL_MODE=free`. The sidebar shows which mode you're in (`cheap · gpt-6-luna` or `free · openrouter/free`) and a `small data` chip when `DATA_SIZE=small`. Hosting: Hugging Face Spaces is free for a demo-mode portfolio app; Render or Fly.io with a persistent disk is roughly $5–10/month. **Deploy public demos with `GRADEWISE_DEMO=true`**, and set a spending cap before you share a link with real models behind it.
 
 ## 📝 Quizzes and 🏋️ the final exercise
 - 📝 **Quiz 6** (6 questions) is on Udemy at the end of the section. Practise first with [quizzes/week_6.yaml](../quizzes/week_6.yaml).

@@ -4,7 +4,7 @@
 │  📍 Week 1 · Day 5: 🧱 PROJECT: the exam pack → ExamPaper JSON (v1)  │
 │                                                                      │
 │  What this script does                                               │
-│    Reads Asha's three PDFs (question paper, marking scheme,          │
+│    Reads Emma's three PDFs (question paper, marking scheme,          │
 │    methodology), asks the model for ONE structured ExamPaper, and    │
 │    saves it as output/cs_midterm.json. One call, no graph: simple.   │
 │                                                                      │

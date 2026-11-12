@@ -36,6 +36,7 @@ COLLECTION = "cs201"  # 💡 one collection per course: a new course is a new co
 def main(reset: bool = False) -> None:
     banner("Week 2 · Pro ingestion", "pymupdf4llm → clean → structure-aware chunks → idempotent Chroma")
     # 💡 Run this twice. The second run embeds nothing and costs nothing: that's idempotency.
+    #    DATA_SIZE=small in .env ingests only unit1 + the handbook (see gradewise/datasets.py).
     ingest(kb_dir=KNOWLEDGE_BASE, collection=COLLECTION, reset=reset)
 
 

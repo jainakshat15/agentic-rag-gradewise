@@ -25,6 +25,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send
 from PIL import Image
 
+from gradewise.config import max_concurrency
 from gradewise.console import step, success, tip, warn
 from gradewise.schemas.answers import AnswerSheet
 from gradewise.schemas.exam import ExamPaper
@@ -42,12 +43,22 @@ from gradewise.transcription.pdf_to_images import DEFAULT_DPI, estimate_image_to
 from gradewise.transcription.schemas import PageTranscription
 from gradewise.transcription.vision import transcribe_page_with_usage
 
-# 💰 ROUGH prices in USD per million tokens, ONLY for the cost estimate we print.
-# ⚠️ Illustrative numbers for a mid-tier vision model: check your provider's pricing page and
-#    edit them. Nothing is billed from these; they just help you compare DPI settings.
-ROUGH_PRICE_PER_M_INPUT = 1.25
-ROUGH_PRICE_PER_M_OUTPUT = 10.0
+
+def _vision_price():
+    from gradewise.config import get_settings
+    from gradewise.pricing import chat_price
+
+    return chat_price(get_settings().transcription_model)
+
+
+# 💰 Prices in USD per million tokens for YOUR vision model, ONLY for the cost estimate we print
+#    (from gradewise/pricing.py, read when this module is imported):
+#      cheap  → gpt-6-luna: $0.10 in / $0.50 out      free → $0 / $0 (openrouter/free)
+#    Nothing is billed from these numbers.
+ROUGH_PRICE_PER_M_INPUT = _vision_price().input
+ROUGH_PRICE_PER_M_OUTPUT = _vision_price().output
 MAX_PARALLEL_PAGES = 4  # 🚀 PRO: cap concurrent vision calls so a 12-page script doesn't hit rate limits
+#                         (MODEL_MODE=free lowers it to 2: see config.max_concurrency)
 
 
 class TranscriptionState(TypedDict, total=False):
@@ -61,7 +72,7 @@ class TranscriptionState(TypedDict, total=False):
     # 💡 Annotated reducers: each parallel `transcribe_page` branch ADDS its page, instead of
     #    overwriting the others' work. This is what makes the Send fan-out safe.
     pages: Annotated[list[PageTranscription], operator.add]
-    usage: Annotated[list[dict[str, int]], operator.add]
+    usage: Annotated[list[dict[str, Any]], operator.add]  # tokens per call (+ "model": who answered)
     sheet: AnswerSheet
     checks: list[VerificationCheck]
 
@@ -156,20 +167,27 @@ def build_transcription_graph(
     return graph.compile()
 
 
-def log_cost(usage: list[dict[str, int]], pages: int, seconds: float) -> dict[str, Any]:
-    """Print a rough per-sheet token and cost summary, and return it."""
+def log_cost(usage: list[dict[str, Any]], pages: int, seconds: float, model: str | None = None) -> dict[str, Any]:
+    """Print a rough per-sheet token and cost summary, and return it (priced for `model`, default VISION)."""
+    from gradewise.config import get_settings
+    from gradewise.pricing import chat_cost, format_cost
+
+    model = model or get_settings().transcription_model
     tokens_in = sum(u.get("input_tokens", 0) for u in usage)
     tokens_out = sum(u.get("output_tokens", 0) for u in usage)
-    cost = tokens_in / 1e6 * ROUGH_PRICE_PER_M_INPUT + tokens_out / 1e6 * ROUGH_PRICE_PER_M_OUTPUT
+    cost = chat_cost(tokens_in, tokens_out, model)
     estimated = any(u.get("estimated") for u in usage)
     summary = {
         "Pages": pages,
         "Vision calls (first pass)": len(usage),
         "Input tokens": f"{tokens_in:,}" + (" (estimated)" if estimated else ""),
         "Output tokens": f"{tokens_out:,}",
-        "Rough cost": f"${cost:.4f}",
+        "Rough cost": format_cost(cost, model),
         "Wall time": f"{seconds:.1f}s",
     }
+    answered = sorted({u["model"] for u in usage if u.get("model")})
+    if answered:
+        summary["Answered by"] = ", ".join(answered)  # 💡 with openrouter/free, the router's picks
     return summary
 
 
@@ -189,7 +207,7 @@ def transcribe_sheet(
     start = time.perf_counter()
     state = app.invoke(
         {"pdf_path": str(pdf_path), "exam": exam, "student_id": student_id, "dpi": dpi},
-        config={"max_concurrency": MAX_PARALLEL_PAGES},
+        config={"max_concurrency": max_concurrency(MAX_PARALLEL_PAGES)},
     )
     sheet: AnswerSheet = state["sheet"]
     if not quiet:

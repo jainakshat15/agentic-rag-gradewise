@@ -1,6 +1,6 @@
 # 🧱 Week 1 project: the exam pack → JSON (v1)
 
-This is your first GradeWise milestone, and it's a big one! 🎉 Asha hands you three PDFs for the CS201 midterm: the **question paper**, the **marking scheme** and the **marking methodology**. By the end of Day 5, GradeWise turns them into **one validated `ExamPaper`**: a JSON array of questions, each carrying its own marking criteria and the examiner's method. Every later week grades against this file.
+This is your first GradeWise milestone, and it's a big one! 🎉 Emma hands you three PDFs for the CS201 midterm: the **question paper**, the **marking scheme** and the **marking methodology**. By the end of Day 5, GradeWise turns them into **one validated `ExamPaper`**: a JSON array of questions, each carrying its own marking criteria and the examiner's method. Every later week grades against this file.
 
 ```bash
 uv run week1/project/extract_exam.py
@@ -16,12 +16,12 @@ You'll see a table of the questions, then a green panel, and the result lands in
 
 ## 🧪 Things to try
 - Delete rule 4 ("NEVER invent marks") from `SYSTEM_PROMPT` and run again. Do the totals still add up?
-- Set `CHAT_MODEL` to a smaller or larger model in `.env` and compare the JSON.
+- Switch models in `.env` and compare the JSON: `MODEL_MODE=free` (OpenRouter's free models, $0, same `OPENROUTER_API_KEY`; the model varies per call), or `MODEL_MODE=custom` with your own `CHAT_MODEL` (for example `openrouter:openai/gpt-6.1-terra`). With the default `MODEL_MODE=cheap` (`gpt-6-luna` via OpenRouter), one extraction costs well under a cent.
 - Open `output/cs_midterm.json` next to `data/exams/cs_midterm/expected_exam.json`. What did the model get differently?
 
 ## 🆘 If something goes wrong
 - **Red "Missing API key" panel:** copy `.env.example` to `.env`, paste your key, and *save the file*.
 - **"Course data not found":** run `git pull`; the exam pack lives in `data/exams/cs_midterm/`.
-- **Warnings that marks don't add up:** that's exactly the problem v1 can't fix on its own. In **week 3** we rebuild this as a LangGraph workflow that sends the problems back to the model, retries, and asks Asha to approve before saving (`week3/project/`).
+- **Warnings that marks don't add up:** that's exactly the problem v1 can't fix on its own. In **week 3** we rebuild this as a LangGraph workflow that sends the problems back to the model, retries, and asks Emma to approve before saving (`week3/project/`).
 
 ⏭ The packaged version of this code lives in `gradewise/exam/` (`extract_exam`, `extract_with_retry`).

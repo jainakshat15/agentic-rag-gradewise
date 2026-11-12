@@ -24,13 +24,17 @@ import typer
 from rich.markup import escape
 from rich.table import Table
 
+from gradewise import datasets
 from gradewise.config import DATA_DIR, OUTPUT_DIR, REPO_ROOT
 from gradewise.console import banner, console, tip, warn
 from gradewise.errors import DataNotFoundError, GradeWiseError
 from gradewise.schemas.exam import ExamPaper
 from gradewise.transcription import cer, needs_review, transcribe_sheet
 
-DEFAULT_SHEET = DATA_DIR / "answer-sheets" / "synthetic" / "student_03.pdf"
+# 📦 The default sheet follows DATA_SIZE: student_03, or student_01 with DATA_SIZE=small
+_CLASS = datasets.synthetic_students()
+_DEFAULT_STUDENT = "student_03" if "student_03" in _CLASS else _CLASS[0]
+DEFAULT_SHEET = DATA_DIR / "answer-sheets" / "synthetic" / f"{_DEFAULT_STUDENT}.pdf"
 DEFAULT_EXAM = DATA_DIR / "exams" / "cs_midterm" / "expected_exam.json"
 
 

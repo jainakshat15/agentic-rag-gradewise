@@ -8,7 +8,7 @@
 │    milliseconds. So POST /batches only STARTS a job and hands back   │
 │    a batch_id. The job runs grade_batch() in a thread pool, records  │
 │    every on_event() as a numbered event (the SSE stream replays      │
-│    them), and stops at each interrupt until Asha reviews.            │
+│    them), and stops at each interrupt until Emma reviews.            │
 │                                                                      │
 │      BatchJob      → one batch: status, events, progress, pending    │
 │      JobRegistry   → the in-memory dict of jobs + the thread pool    │

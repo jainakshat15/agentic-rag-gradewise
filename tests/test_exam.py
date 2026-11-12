@@ -266,7 +266,7 @@ def test_db_round_trip(tmp_path):
 
     db = tmp_path / "test.db"
     paper = ExamPaper.model_validate(good_paper())
-    save_exam(paper, approved_by="asha", db=db)
+    save_exam(paper, approved_by="emma", db=db)
     assert load_exam("cs_midterm", db=db) == paper
 
     # saving again updates in place rather than duplicating
@@ -274,7 +274,7 @@ def test_db_round_trip(tmp_path):
     save_exam(changed, db=db)
     records = list_exams(db=db)
     assert [r.exam_id for r in records] == ["cs_midterm"]
-    assert records[0].title == "CS201 Midterm (v2)" and records[0].approved_by == "asha"
+    assert records[0].title == "CS201 Midterm (v2)" and records[0].approved_by == "emma"
     assert records[0].question_count == 2
 
     assert delete_exam("cs_midterm", db=db)
@@ -300,7 +300,7 @@ def test_graph_retries_pauses_for_review_then_stores(tmp_path):
     graph = build_exam_graph(llm=llm, db=db, write_json=False)
 
     config, result = _start(graph)
-    assert "__interrupt__" in result  # ⏸ paused for Asha
+    assert "__interrupt__" in result  # ⏸ paused for Emma
     payload = result["__interrupt__"][0].value
     assert payload["summary"]["question_count"] == 2 and payload["problems"] == []
     assert graph.get_state(config).next == ("admin_review",)
@@ -318,8 +318,8 @@ def test_graph_applies_admin_edits(tmp_path):
     db = tmp_path / "g.db"
     graph = build_exam_graph(llm=FakeStructuredLLM([good_paper()]), db=db, write_json=False)
     config, _ = _start(graph)
-    graph.invoke(Command(resume={"approved": True, "edits": {"title": "CS201 Midterm, edited by Asha"}}), config)
-    assert load_exam("cs_midterm", db=db).title == "CS201 Midterm, edited by Asha"
+    graph.invoke(Command(resume={"approved": True, "edits": {"title": "CS201 Midterm, edited by Emma"}}), config)
+    assert load_exam("cs_midterm", db=db).title == "CS201 Midterm, edited by Emma"
 
 
 def test_graph_rejection_stores_nothing(tmp_path):
@@ -341,7 +341,7 @@ def test_graph_sends_flawed_exam_to_review_after_max_attempts(tmp_path):
     graph = build_exam_graph(llm=FakeStructuredLLM([bad_paper()] * 3), db=tmp_path / "g.db", write_json=False)
     _, result = _start(graph)
     assert result["attempts"] == 3
-    assert result["__interrupt__"][0].value["problems"]  # Asha sees what's still wrong
+    assert result["__interrupt__"][0].value["problems"]  # Emma sees what's still wrong
 
 
 def test_graph_survives_restart_with_sqlite_checkpointer(tmp_path):

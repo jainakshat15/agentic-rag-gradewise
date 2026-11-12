@@ -4,7 +4,7 @@
 │  🧱 Week 5 · Day 3: Chat with the results                            │
 │                                                                      │
 │  What: an interactive Q&A loop over the stored report cards.         │
-│        Ask anything Asha would ask after a marking session.          │
+│        Ask anything Emma would ask after a marking session.          │
 │  Run:  uv run week5/project/report_qa.py                             │
 │        uv run week5/project/report_qa.py -q "Which question was the  │
 │               hardest?"                                              │

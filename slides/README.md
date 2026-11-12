@@ -4,7 +4,7 @@ The PowerPoint decks behind every video: **one deck per week**, built from one d
 
 | File | What it is |
 |---|---|
-| `source/master_template.pptx` | Every layout once (20 slides), with placeholder text and notes on when to use each one |
+| `source/master_template.pptx` | Every layout once, with placeholder text and notes on when to use each one |
 | `source/week_1.pptx` | Week 1: Foundations & your first win (17 videos, 280 slides) |
 | `source/week_2.pptx` | Week 2: RAG, GradeWise's knowledge base (15 videos, 255 slides) |
 | `source/week_3.pptx` | Week 3: Agents & LangGraph (12 videos, 262 slides) |
@@ -37,7 +37,7 @@ Every slide has **speaker notes**: the talking points for that moment of the vid
 | 3 | Day 1 - Setup Overview: uv, API Keys, Costs and the GitHub Repo | 36–48 | `setup/SETUP-PC.md` |
 | 4 | Day 1 - Windows Setup: Git, Cursor/VS Code, Clone and `uv sync` | 49–64 | `setup/SETUP-PC.md` |
 | 5 | Day 1 - Mac Setup: Git, Cursor/VS Code, Clone and `uv sync` | 65–79 | `setup/SETUP-mac.md` |
-| 6 | Day 1 - Your OpenAI Key, the `.env` File and Running Diagnostics | 80–96 | `week1/day1.ipynb` |
+| 6 | Day 1 - Your OpenRouter Key, the `.env` File and Running Diagnostics | 80–96 | `week1/day1.ipynb` |
 | 7 | Day 2 - How LLMs Work: Tokens, Context Windows, Temperature and Cost | 97–115 | `week1/day2.ipynb` |
 | 8 | Day 2 - The LangChain 1.x Ecosystem: Core, LangGraph, LangSmith, Deep Agents | 116–133 | `week1/day2.ipynb` |
 | 9 | Day 2 - First Calls with `init_chat_model`: Invoke, Stream, Batch, Swap Providers | 134–148 | `week1/day2.ipynb` |
@@ -147,30 +147,29 @@ Native build-ups **Morph** step by step: the production architecture (UI → API
 | 11 | Day 5 - Capstone Showcase: From Upload to Report Card | 201–219 | `week6/day5.ipynb` |
 | 12 | Day 5 - Where Next: Math and Diagrams, Deep Agents, an MCP Server for GradeWise | 220–232 | `week6/day5.ipynb` |
 | 13 | Day 5 - Make It Your Portfolio Piece | 233–246 | `week6/day5.ipynb` |
-| 14 | Day 5 - The Final Roadmap and Thank You | 247–268 | `week6/day5.ipynb` |
+| 14 | Day 5 - The Final Roadmap and Thank You | 247–267 | `week6/day5.ipynb` |
 
 ## The design system
 
-- **16:9, dark.** Background `#0B1020`, surface `#141B34`, primary `#7C5CFF`, accent `#22D3EE`, success / warn / error `#34D399 / #FBBF24 / #F87171`, text `#E6E9F5`, muted `#9AA3C7`. Each week has its own accent: the same colours as the banners and roadmap in `assets/`.
-- **Fonts:** Inter + JetBrains Mono when installed. The current decks were built on a machine without them, so they use **Segoe UI + Consolas**. Rebuild after installing Inter / JetBrains Mono to switch.
-- **17 layouts:**
+- **16:9, dark, on a grid.** 1920 × 1080 with a 12-column grid: 96 px outer margins, 24 px gutters, an 8 px spacing scale. Every slide title sits at the same place, so slides line up and Morph cleanly.
+- **Colour.** Background `#0B1020`, surfaces `#141B34` / `#1B2445` with a 1 px `#232C52` hairline, primary `#7C5CFF`, accent `#22D3EE`, success / warn / error `#34D399 / #FBBF24 / #F87171`, text `#E6E9F5`, muted `#9AA3C7`. Each week has its own accent: the same colours as the banners and roadmap in `assets/`.
+- **Type.** **Inter Display** SemiBold for headlines (slightly tightened), **Inter** Regular / Medium / SemiBold for text, **JetBrains Mono** for code and file paths. All three are free (SIL Open Font License). One size scale: 50 / 44 / 32 pt headlines, 24 / 20 pt card titles, 22 / 18 / 15 pt text, 12 pt labels; nothing below 10.5 pt (21 px). Labels are sentence case, never shouty caps, and emoji are stripped from slide text.
+- **Layouts:**
 
   | | | | | | |
   |---|---|---|---|---|---|
   | TITLE | WEEK-OPENER | RECAP | ROADMAP-FULL | ROADMAP-MINI | OBJECTIVES |
-  | CONCEPT | DIAGRAM | ANALOGY | CODE | DEMO | COMPARE |
-  | PITFALL | GRADEWISE-LINK | SUMMARY | QUIZ-CTA | NEXT | |
+  | CONCEPT | DIAGRAM | FLOW | ANALOGY | CODE | DEMO |
+  | COMPARE | PITFALL | GRADEWISE-LINK | SUMMARY | WEEK-SUMMARY | QUIZ-CTA |
+  | NEXT | | | | | |
 
-  See `source/master_template.pptx` for one of each.
-- **On every slide:**
-  - the week colour bar
-  - the `W2·D3` tag and video breadcrumb
-  - the course progress bar (day *k* of 30)
-  - the GradeWise mark
+  See `source/master_template.pptx` for one of each. Weeks 3 to 6 add their own build-up layouts (graphs, pipelines, the final quiz and the thank-you) in the same style.
+- **On every slide but the title:** a quiet footer with the GradeWise mark, *Week · Day · Video*, and the course progress bar (day *k* of 30).
+- **The avatar safe zone.** The presenter is composited bottom-right in the videos, so the area right of x = 1600 px and below y = 760 px is always empty: no text, shapes, logos or progress elements (only the background runs into it). The build checks every shape on every slide and fails if anything lands there.
 - **Transitions:**
   - **Morph** where a diagram builds up across slides (shapes share `!!name` names) and on the roadmap. This needs PowerPoint 2019 or Microsoft 365; older versions fall back to Fade.
   - **Fade** everywhere else.
-- Shapes are native PowerPoint shapes (editable). Concept diagrams are PNGs in `source/images/`.
+- Shapes are native PowerPoint shapes (editable). Concept diagrams are PNGs in `source/images/`, drawn in the same palette and fonts.
 
 ## Editing the decks
 
@@ -184,4 +183,4 @@ Any presentation app can open the `.pptx` files. To export with [DeckCraft](http
 deckcraft-cli run --in slides/source/week_1.pptx --cmd 'file.export={"path":"slides/pdf/week_1.pdf","format":"pdf","dpi":144,"textLayer":true}'
 ```
 
-In PowerPoint or Keynote, use File ▸ Export ▸ PDF. The decks use **Inter** and **JetBrains Mono** (both free). Install them first, or the slides fall back to Segoe UI and Consolas.
+In PowerPoint or Keynote, use File ▸ Export ▸ PDF. The decks use **Inter**, **Inter Display** and **JetBrains Mono** (all free, from [rsms/inter](https://github.com/rsms/inter) and [JetBrains/JetBrainsMono](https://github.com/JetBrains/JetBrainsMono)). Install them first, or the slides fall back to your system fonts.

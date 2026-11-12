@@ -1,6 +1,6 @@
 # 🚢 Week 6 project: GradeWise, the app
 
-> **Milestone M6.** Everything you built in weeks 1 to 5 now sits behind a FastAPI backend, with a Streamlit dashboard on top and Docker around both. Asha can open a browser, upload a pile of scripts, watch them being graded live, decide on the uncertain marks, and read every report card. No notebook required.
+> **Milestone M6.** Everything you built in weeks 1 to 5 now sits behind a FastAPI backend, with a Streamlit dashboard on top and Docker around both. Emma can open a browser, upload a pile of scripts, watch them being graded live, decide on the uncertain marks, and read every report card. No notebook required.
 
 The app code lives in the package, not in this folder:
 

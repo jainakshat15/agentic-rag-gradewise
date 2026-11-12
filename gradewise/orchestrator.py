@@ -5,7 +5,7 @@
 │                                                                      │
 │  What this file does                                                 │
 │    One graph that takes a pile of answer sheets to stored report     │
-│    cards, pausing for Asha whenever a human should decide:           │
+│    cards, pausing for Emma whenever a human should decide:           │
 │                                                                      │
 │    load_exam ─▶ transcribe ×students (Send) ─▶ review_transcription  │
 │      ─▶ grade ×students (Send; each runs the grading graph)          │
@@ -14,7 +14,7 @@
 │                                                                      │
 │    ⏸ review_transcription and human_review call interrupt(). With a │
 │      SqliteSaver checkpointer the paused run lives in a file, so     │
-│      Asha can close her laptop and resume tomorrow.                  │
+│      Emma can close her laptop and resume tomorrow.                  │
 │                                                                      │
 │  Use it                                                              │
 │    result = grade_batch("cs_midterm", pdfs_or_sheets, thread_id="b1")│
@@ -52,7 +52,8 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command, Send, interrupt
 
-from gradewise.config import DATA_DIR, OUTPUT_DIR
+from gradewise import datasets
+from gradewise.config import DATA_DIR, OUTPUT_DIR, max_concurrency
 from gradewise.console import tip
 from gradewise.db import DB, ExamNotFoundError
 from gradewise.db import load_exam as db_load_exam
@@ -68,6 +69,7 @@ from gradewise.schemas.report import ReportCard
 
 CHECKPOINT_DB = OUTPUT_DIR / "grading_checkpoints.db"
 MAX_PARALLEL_STUDENTS = 3  # 🚀 PRO: students × questions run at once can hit rate limits; tune with care
+#                            (MODEL_MODE=free lowers both caps to 2: see config.max_concurrency)
 
 EventCallback = Callable[[str, str | None, dict[str, Any]], None]
 Reviewer = Callable[[dict[str, Any]], dict[str, Any]]
@@ -105,6 +107,7 @@ class OrchestratorState(TypedDict, total=False):
 
     exam_id: str
     exam: dict[str, Any]  # ExamPaper as a dict
+    questions: list[str] | None  # only grade these question IDs (None = all, or Q1–Q3 when DATA_SIZE=small)
     inputs: list[dict[str, Any]]  # [{"student_id", "pdf_path"} or {"student_id", "sheet"}]
     sheets: Annotated[dict[str, dict[str, Any]], merge_by_student]  # student → AnswerSheet
     graded: Annotated[dict[str, dict[str, Any]], merge_by_student]  # student → ReportCard (marks only)
@@ -254,6 +257,10 @@ def build_orchestrator(
     def load_exam(state: OrchestratorState) -> dict:
         exam_id = state["exam_id"]
         paper = ExamPaper.model_validate(state["exam"]) if state.get("exam") else resolve_exam(exam_id, db=db)
+        # 📦 DATA_SIZE=small grades Q1–Q3 only; an explicit `questions=[...]` always wins.
+        ids = state.get("questions") or (datasets.exam_question_ids(paper) if datasets.is_small() else None)
+        if ids:
+            paper = datasets.subset_exam(paper, ids)
         emit("load_exam", None, f"{paper.title}: {len(paper.questions)} questions, {len(_students(state))} students")
         return {"exam": paper.model_dump(mode="json")}
 
@@ -316,7 +323,9 @@ def build_orchestrator(
         sheet = AnswerSheet.model_validate(task["sheet"])
         emit("grade", sheet.student_id, f"grading {len(exam.questions)} questions…")
         # 💡 The grading graph (Send per question) runs INSIDE this node: a graph inside a graph.
-        out = grading_graph.invoke({"exam": exam, "sheet": sheet}, config={"max_concurrency": MAX_PARALLEL_QUESTIONS})
+        out = grading_graph.invoke(
+            {"exam": exam, "sheet": sheet}, config={"max_concurrency": max_concurrency(MAX_PARALLEL_QUESTIONS)}
+        )
         report: ReportCard = out["report"]
         return {"graded": {sheet.student_id: report.model_dump(mode="json")}}
 
@@ -449,7 +458,8 @@ def sheets_from_transcripts(
     💡 Perfect transcriptions (confidence 1.0) isolate the grader: if a mark is wrong now, it's the
        grader's fault, not the handwriting's. That's exactly what you want when evaluating grading.
     Args:
-        students: None = all, an int = the first N, or a list of student IDs.
+        students: None = datasets.synthetic_students() (all 10, or student_01 + student_05 when
+                  DATA_SIZE=small), an int = the first N, or a list of student IDs.
     """
     import json
 
@@ -462,6 +472,8 @@ def sheets_from_transcripts(
         ids = ids[:students]
     elif students is not None:
         ids = [s for s in students if s in truth]
+    else:
+        ids = [s for s in datasets.synthetic_students() if s in truth]
     return [
         AnswerSheet(
             student_id=sid,
@@ -541,6 +553,7 @@ def grade_batch(
     on_event: EventCallback | None = None,
     reviewer: Reviewer | None = None,
     exam: ExamPaper | None = None,
+    questions: Sequence[str] | None = None,
     orchestrator: Any = None,
     **build_kwargs: Any,
 ) -> BatchResult:
@@ -554,6 +567,7 @@ def grade_batch(
         on_event: progress callback(stage, student_id, detail). See the module docstring.
         reviewer: callback(interrupt_payload) → resume dict, or None to stop and return "paused".
         exam: pass an ExamPaper directly instead of loading it.
+        questions: only grade these question IDs. Default: every question, or Q1–Q3 when DATA_SIZE=small.
         orchestrator: a compiled graph from build_orchestrator(); otherwise one is built from build_kwargs
                       (checkpointer, llm, retriever, vision_llm, feedback, db, embeddings, ...).
 
@@ -561,7 +575,7 @@ def grade_batch(
     💡 If `thread_id` already holds a paused run (say, after a restart), it is resumed instead of restarted.
     """
     app = orchestrator or build_orchestrator(**build_kwargs)
-    config = {"configurable": {"thread_id": thread_id}, "max_concurrency": MAX_PARALLEL_STUDENTS}
+    config = {"configurable": {"thread_id": thread_id}, "max_concurrency": max_concurrency(MAX_PARALLEL_STUDENTS)}
     if app.get_state(config).next:
         if on_event:
             on_event("resumed", None, {"message": f"thread {thread_id!r} was paused: resuming it"})
@@ -569,6 +583,8 @@ def grade_batch(
     payload: dict[str, Any] = {"exam_id": exam_id, "inputs": to_inputs(pdf_paths)}
     if exam is not None:
         payload["exam"] = exam.model_dump(mode="json")
+    if questions is not None:
+        payload["questions"] = list(questions)
     return _drive(app, payload, config, auto_approve=auto_approve, on_event=on_event, reviewer=reviewer)
 
 
@@ -587,7 +603,7 @@ def resume_batch(
     resume_batch("b1", {"overrides": {"Q7a": 1.5}, "approved": True})
     """
     app = orchestrator or build_orchestrator(**build_kwargs)
-    config = {"configurable": {"thread_id": thread_id}, "max_concurrency": MAX_PARALLEL_STUDENTS}
+    config = {"configurable": {"thread_id": thread_id}, "max_concurrency": max_concurrency(MAX_PARALLEL_STUDENTS)}
     if not app.get_state(config).interrupts:
         raise ValueError(f"Thread {thread_id!r} is not waiting for a decision.")
     return _drive(

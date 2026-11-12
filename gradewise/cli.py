@@ -51,23 +51,30 @@ def info() -> None:
     def key_status(secret) -> str:
         return "✅ set" if secret else "— not set"
 
+    from gradewise import datasets
+
     success(
         "Current configuration",
         {
+            "Model mode": f"{settings.model_mode}  (MODEL_MODE: cheap | free | custom)",
             "Chat model": settings.chat_model,
             "Grading model": settings.grading_model,
             "Vision model": settings.transcription_model,
             "Embedding model": settings.embedding_model,
-            "Budget mode": settings.budget_mode,
-            "OpenAI key": key_status(settings.openai_api_key),
-            "Anthropic key": key_status(settings.anthropic_api_key),
-            "Google key": key_status(settings.google_api_key),
+            "Data size": datasets.describe(),
+            "Keys this mode needs": ", ".join(settings.required_keys) or "none (local models)",
+            "OpenRouter key": key_status(settings.openrouter_api_key),
+            "OpenAI key (custom only)": key_status(settings.openai_api_key),
+            "Anthropic key (custom only)": key_status(settings.anthropic_api_key),
+            "Google key (custom only)": key_status(settings.google_api_key),
             "LangSmith tracing": settings.langsmith_tracing,
         },
         next_step="Change any of these in your .env file",
     )
-    if not settings.budget_mode:
-        tip("Set BUDGET_MODE=true in .env to run every step on the cheapest model.")
+    if settings.model_mode == "cheap":
+        tip("No credits? MODEL_MODE=free runs on OpenRouter's free models with the same key ($0, rate-limited).")
+    if not datasets.is_small():
+        tip("Just want to run the APIs fast? DATA_SIZE=small uses 2 PDFs, Q1–Q3 and 2 students.")
 
 
 # ── 📚 Week 2: the knowledge base ──────────────────────────────────────────
@@ -76,7 +83,7 @@ def ingest(
     reset: bool = typer.Option(False, "--reset", help="Wipe the collection and rebuild it"),
     collection: str = typer.Option("cs201", help="Knowledge-base collection name"),
 ) -> None:
-    """📚 Ingest data/knowledge-base/*.pdf into the vector store (safe to re-run)."""
+    """📚 Ingest data/knowledge-base/*.pdf into the vector store (safe to re-run; DATA_SIZE=small: 2 PDFs)."""
     from gradewise.errors import GradeWiseError
     from gradewise.ingestion import ingest as run_ingest
 
@@ -157,7 +164,9 @@ def transcribe(
 # ── 🧮 Week 5: grading, reports, Q&A, evaluation ───────────────────────────
 @app.command()
 def grade(
-    students: Annotated[int, typer.Option(help="How many synthetic students to grade")] = 3,
+    students: Annotated[
+        int, typer.Option(help="How many synthetic students to grade (at most 2 when DATA_SIZE=small)")
+    ] = 3,
     exam_id: Annotated[str, typer.Option("--exam", help="Exam ID")] = "cs_midterm",
     from_transcripts: Annotated[
         bool, typer.Option("--from-transcripts", help="Skip vision: grade transcripts.json")

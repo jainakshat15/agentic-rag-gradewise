@@ -3,7 +3,7 @@
 │  🎓 Agentic RAG with LangChain & LangGraph                           │
 │  📍 Week 5 · Day 3: The report card                                  │
 │                                                                      │
-│  What: everything a student (and Asha) needs to see after grading.   │
+│  What: everything a student (and Emma) needs to see after grading.   │
 │  ⏭ Used by: gradewise/reports (writer, store, Q&A agent), the UI    │
 ╰──────────────────────────────────────────────────────────────────────╯
 """

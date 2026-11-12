@@ -2,7 +2,7 @@
 
 **Northbridge Institute, School of Computing** · CS201 Systems Fundamentals · Exam code CS201-MT-2026 · 50 marks
 
-> 💡 These are full-marks answers written by the examiner, Dr. Asha Raman. They are deliberately a little longer than a student needs to write in 90 minutes: a shorter answer that hits every point of the marking scheme earns the same marks. Each section heading is a question ID used by GradeWise (`Q7a` = Question 7(a)).
+> 💡 These are full-marks answers written by the examiner, Dr. Emma Carter. They are deliberately a little longer than a student needs to write in 90 minutes: a shorter answer that hits every point of the marking scheme earns the same marks. Each section heading is a question ID used by GradeWise (`Q7a` = Question 7(a)).
 
 ## Q1
 

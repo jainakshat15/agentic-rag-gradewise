@@ -10,7 +10,7 @@
 
 import pytest
 
-from gradewise.config import REPO_ROOT, Settings
+from gradewise.config import REPO_ROOT
 from gradewise.errors import InvalidModelError, MissingAPIKeyError
 from gradewise.models import _check
 
@@ -19,20 +19,9 @@ def test_repo_root_is_found():
     assert (REPO_ROOT / "pyproject.toml").exists()
 
 
-def test_budget_mode_uses_chat_model_everywhere():
-    s = Settings(_env_file=None, chat_model="openai:cheap", smart_model="openai:smart", budget_mode=True)
-    assert s.grading_model == "openai:cheap"
-    assert s.transcription_model == "openai:cheap"
-
-
-def test_normal_mode_uses_tiers():
-    s = Settings(_env_file=None, chat_model="openai:cheap", smart_model="openai:smart", budget_mode=False)
-    assert s.grading_model == "openai:smart"
-
-
 def test_model_without_provider_is_rejected():
     with pytest.raises(InvalidModelError):
-        _check("gpt-5.4-mini")
+        _check("gpt-6-luna")
 
 
 def test_missing_key_gives_friendly_error(monkeypatch):

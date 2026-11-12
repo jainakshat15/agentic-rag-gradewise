@@ -86,7 +86,7 @@ questions:
       - "Because the model's reply is structured output and can't be searched with regexes"
     answer: 0
     explanations:
-      - "Correct. Removing the sentence first means a gullible model can't follow it, principle 10 is respected (the instruction is ignored, the DNS content is still marked), and apply_guardrails() flags the script for Asha."
+      - "Correct. Removing the sentence first means a gullible model can't follow it, principle 10 is respected (the instruction is ignored, the DNS content is still marked), and apply_guardrails() flags the script for Emma."
       - "Speed isn't the point: the regexes are cheap either way."
       - "GradeWise deliberately does NOT zero the answer: student 10's DNS content still earns its marks. Only an answer that is nothing but instructions gets 0, and that's decided by code without an LLM call."
       - "Structured output is just a Python object; checking it would be easy. Checking afterwards is simply too late: the model has already read the instruction."
@@ -97,7 +97,7 @@ questions:
     options:
       - "There's no bug: strengths are written by GradeWise, not by students"
       - "The list items need a closing </ul>"
-      - "Student text (quoted in justifications and feedback) is no longer HTML-escaped, so a <script> written in an answer could run in Asha's browser"
+      - "Student text (quoted in justifications and feedback) is no longer HTML-escaped, so a <script> written in an answer could run in Emma's browser"
       - "f-strings can't be used inside a generator expression"
     answer: 2
     explanations:
@@ -108,7 +108,7 @@ questions:
 
   - id: w5-q8
     lecture: "🧱 Day 4 - The Orchestrator: GradeWise End to End"
-    question: "`paused = grade_batch(\"cs_midterm\", sheets, thread_id=\"b1\", ...)` returns status 'paused' with a human_review payload for Q8. How do you continue the SAME batch with Asha's mark of 3?"
+    question: "`paused = grade_batch(\"cs_midterm\", sheets, thread_id=\"b1\", ...)` returns status 'paused' with a human_review payload for Q8. How do you continue the SAME batch with Emma's mark of 3?"
     options:
       - "`resume_batch(\"b1\", {\"overrides\": {\"Q8\": 3}, \"approved\": True})`"
       - "`grade_batch(\"cs_midterm\", sheets, thread_id=\"b2\", auto_approve=True)`"
@@ -117,7 +117,7 @@ questions:
     answer: 0
     explanations:
       - "Correct. resume_batch() sends `Command(resume=decision)` to the paused thread; human_review's interrupt() returns that dict and apply_review() applies the override (clamped to 0…5)."
-      - "A new thread_id starts a brand-new batch, and auto_approve would accept the grader's 2.5 without Asha's mark."
+      - "A new thread_id starts a brand-new batch, and auto_approve would accept the grader's 2.5 without Emma's mark."
       - "A plain input dict starts a new run on the thread instead of answering the interrupt. Resuming needs Command(resume=...)."
       - "Nothing is stored until after human_review: the report isn't in SQLite yet, and the graph reads its own checkpointed state, not the database."
 

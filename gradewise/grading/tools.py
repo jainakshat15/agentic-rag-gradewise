@@ -9,7 +9,7 @@
 │                                                                      │
 │      retrieve_reference(query) → "let me check the course notes"     │
 │      get_rubric(question_id)   → "let me re-read the marking scheme" │
-│      flag_for_review(reason)   → "Asha should look at this one"      │
+│      flag_for_review(reason)   → "Emma should look at this one"      │
 │                                                                      │
 │  💡 The tools need to know WHICH question is being marked and WHICH  │
 │     retriever to use. Instead of building new tools for every        │

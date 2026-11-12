@@ -4,7 +4,7 @@
 │  📝 scripts/build_exam_pack.py: the CS201 midterm → PDFs             │
 │                                                                      │
 │  Turns the Markdown in scripts/exam_pack_source/ into the three      │
-│  documents Asha hands GradeWise:                                     │
+│  documents Emma hands GradeWise:                                     │
 │    question_paper.pdf · marking_scheme.pdf · methodology.pdf         │
 │  in data/exams/cs_midterm/, then checks them against the canonical   │
 │  answer key, expected_exam.json (an ExamPaper).                      │
@@ -106,7 +106,7 @@ def render_pdf(source: Path) -> Path:
     doc.set_metadata(
         {
             "title": f"CS201 {meta.get('title', source.stem)}",
-            "author": "Dr. Asha Raman (fictional), for the GradeWise course",
+            "author": "Dr. Emma Carter (fictional), for the GradeWise course",
             "subject": "CS201 Systems Fundamentals midterm",
             "keywords": "CS201; midterm; Northbridge Institute; GradeWise",
             "creator": "scripts/build_exam_pack.py",

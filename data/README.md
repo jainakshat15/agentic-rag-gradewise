@@ -1,13 +1,26 @@
 # 📚 Course data
 
-Everything GradeWise reads lives here. It's all set in one fictional world: **Northbridge Institute**, course **CS201 Systems Fundamentals**, taught by **Asha**, with students `student_01` … `student_10`.
+Everything GradeWise reads lives here. It's all set in one fictional world: **Northbridge Institute**, course **CS201 Systems Fundamentals**, taught by **Emma**, with students `student_01` … `student_10`.
 
 | Folder | Contents | Used in |
 |---|---|---|
 | `knowledge-base/` | CS201 course notes as PDFs: `unit1_operating_systems.pdf` (7 pp), `unit2_computer_networks.pdf` (6 pp), `unit3_databases.pdf` (7 pp), `cs201_course_handbook.pdf` (2 pp, incl. the general marking principles) | Week 2 onwards (RAG) |
 | `exams/cs_midterm/` | `question_paper.pdf` (10 questions, 15 parts, 50 marks), `marking_scheme.pdf`, `methodology.pdf`, `model_answers.md`, and `expected_exam.json`: the hand-checked `ExamPaper` that LLM extraction is evaluated against | Week 1 Day 5 onwards |
-| `answer-sheets/` | `synthetic/student_01…10.pdf`: computer-rendered "handwriting" with known ground truth in `synthetic/transcripts.json`. Real volunteer sheets go in this folder as `student_01.pdf`… (see `VOLUNTEER_BRIEF.md`, `CONSENT_FORM.md`) | Week 4 onwards |
+| `answer-sheets/` | `synthetic/student_01…10.pdf`: computer-rendered "handwriting" with known ground truth in `synthetic/transcripts.json`. Real volunteer sheets go in this folder as `student_01.pdf`… (see `VOLUNTEER_BRIEF.md`, `CONSENT_FORM.md`). In the lectures, **student_05 is "Sam"** (it carries Sam's deadlock answer from `week1/day1.ipynb`) | Week 4 onwards |
 | `golden/` | `synthetic_labels.csv`: examiner marks per criterion for the synthetic sheets (490 rows). `labels_template.csv`: blank sheet for hand-grading the real ones | Week 5 evaluation |
+
+## 📦 `DATA_SIZE=small`: the quick slice
+Already know the ideas and just want to run the APIs quickly and cheaply? Set `DATA_SIZE=small` in `.env` (the default is `full`). It's also the natural partner for `MODEL_MODE=free`, whose 50 requests a day can't cover a full class run. Nothing here is deleted; every loader, notebook, script and the app simply use a slice:
+
+| Dataset | `full` | `small` |
+|---|---|---|
+| Knowledge base PDFs | all 4 | `unit1_operating_systems.pdf` + `cs201_course_handbook.pdf` |
+| Exam questions graded | all 10 questions / 15 parts | Q1–Q3, with all their parts |
+| Synthetic students | 10 (`student_01` … `student_10`) | 2: `student_01` and `student_05` (Sam) |
+| Eval and golden sets | all | the first 5 items, or the rows for those 2 students × Q1–Q3 |
+| Exam extraction | the full exam (one call) | the same: the subset is applied after |
+
+It's all decided in one place, `gradewise/datasets.py`, and a function argument (e.g. `students=[...]`) always wins over the setting.
 
 ## 🔒 Privacy
 **No real student data is used anywhere in this course.** The answer sheets shipped today are synthetic (computer-rendered "handwriting"). Any real handwritten sheets added later are written by volunteers who give written consent for their handwriting to be used in the course. Names and IDs are fictional.

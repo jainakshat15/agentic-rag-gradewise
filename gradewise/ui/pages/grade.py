@@ -7,7 +7,7 @@
 │        class), then watch it LIVE: a progress bar per student and an │
 │        event log, streamed from the API over Server-Sent Events.     │
 │  ⏮ Built on: POST /batches, GET /batches/{id}/events (SSE)          │
-│  ⏭ Next: 🔍 Review queue, when the batch pauses for Asha            │
+│  ⏭ Next: 🔍 Review queue, when the batch pauses for Emma            │
 ╰──────────────────────────────────────────────────────────────────────╯
 """
 
@@ -34,7 +34,14 @@ with st.form("batch"):
     exam_id = exam_picker()
     source = st.radio("Answer sheets", list(SOURCES), format_func=SOURCES.get)
     c1, c2 = st.columns(2)
-    students = c1.slider("How many synthetic students", 1, 10, 3)
+    small = (st.session_state.get("health") or {}).get("data_size") == "small"
+    students = c1.slider(
+        "How many synthetic students",
+        1,
+        10,
+        2 if small else 3,
+        help="DATA_SIZE=small: 2 means student_01 + student_05 (Sam), and only Q1–Q3 are graded." if small else None,
+    )
     auto = c2.toggle("Auto-approve every review", help="Skips the human. Fine for a demo, never for real marks.")
     uploads = st.file_uploader("Answer-sheet PDFs", type=["pdf"], accept_multiple_files=True)
     if demo():

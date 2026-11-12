@@ -7,7 +7,7 @@ unit: 0
 # CS201 Systems Fundamentals: Course Handbook
 
 **Northbridge Institute, School of Computing** · Autumn term 2026
-Course leader: Dr. Asha Raman
+Course leader: Dr. Emma Carter
 
 ## About the course
 

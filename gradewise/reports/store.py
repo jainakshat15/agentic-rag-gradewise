@@ -5,7 +5,7 @@
 │                                                                      │
 │  What this file does                                                 │
 │    Every report card is saved in TWO places, for two kinds of        │
-│    question Asha will ask:                                           │
+│    question Emma will ask:                                           │
 │                                                                      │
 │      SQLite (gradewise/db.py)  → exact questions: "what did          │
 │                                  student_04 get?", averages, lists   │

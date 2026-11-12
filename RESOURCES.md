@@ -5,7 +5,8 @@ Every link mentioned in the course, organised by week.
 ## 🛠️ Setup
 - uv: https://docs.astral.sh/uv/
 - Git: https://git-scm.com/downloads · Cursor: https://cursor.com/ · VS Code: https://code.visualstudio.com/
-- OpenAI platform: https://platform.openai.com/ · usage dashboard: https://platform.openai.com/usage
+- OpenRouter (the course's one key): keys https://openrouter.ai/keys · activity and spend https://openrouter.ai/activity · models and prices https://openrouter.ai/models
+- Direct providers (custom mode only): OpenAI https://platform.openai.com/
 - Anthropic console: https://console.anthropic.com/ · Google AI Studio: https://aistudio.google.com/ · Ollama: https://ollama.com/
 - LangSmith: https://smith.langchain.com/
 

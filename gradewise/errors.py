@@ -49,15 +49,48 @@ class GradeWiseError(Exception):
 
 class MissingAPIKeyError(GradeWiseError):
     title = "Missing API key"
-    cause = "The .env file is missing, not in the repo root, not saved, or the key is misspelled."
-    fix = "Copy .env.example to .env, paste your key, and SAVE the file. Then restart the kernel."
-    help_ref = "Part 5 of setup/SETUP-PC.md (or -mac / -linux)"
+    cause = (
+        "MODEL_MODE=cheap and MODEL_MODE=free both need ONE key: OPENROUTER_API_KEY (MODEL_MODE=custom needs "
+        "the key of each provider you picked). Or the .env file is missing, not in the repo root, not saved, "
+        "or the key is misspelled."
+    )
+    fix = (
+        "Create a key at https://openrouter.ai/keys, copy .env.example to .env, paste it after "
+        "OPENROUTER_API_KEY=, and SAVE the file. Then restart the kernel."
+    )
+    help_ref = "Part 5 of setup/SETUP-PC.md (or -mac / -linux), and setup/SWAP_PROVIDER.md"
+
+
+class FreeLimitReachedError(GradeWiseError):
+    title = "Free daily limit reached"
+    cause = (
+        "MODEL_MODE=free uses OpenRouter's free models, which allow about 50 requests a day (1,000 a day once "
+        "your account has ever bought $10 of credits). A full class run makes hundreds of calls."
+    )
+    fix = (
+        "Use DATA_SIZE=small in .env, and try again tomorrow; or switch to MODEL_MODE=cheap "
+        "(a few dollars of OpenRouter credits)."
+    )
+    help_ref = "setup/SWAP_PROVIDER.md (free-mode caveats)"
+
+
+class NoCreditsError(GradeWiseError):
+    title = "No OpenRouter credits"
+    cause = "MODEL_MODE=cheap pays per call, and your OpenRouter account has no credits left (HTTP 402)."
+    fix = (
+        "Add a few dollars at https://openrouter.ai/settings/credits (OpenRouter adds a small fee when you buy), "
+        "or set MODEL_MODE=free in .env (with DATA_SIZE=small)."
+    )
+    help_ref = "setup/SWAP_PROVIDER.md"
 
 
 class InvalidModelError(GradeWiseError):
     title = "Model setting looks wrong"
-    cause = 'Models must be written as "provider:model", e.g. "openai:gpt-5.4-mini".'
-    fix = "Check CHAT_MODEL / SMART_MODEL / VISION_MODEL in your .env file."
+    cause = 'Models must be written as "provider:model", e.g. "openrouter:openai/gpt-6-luna".'
+    fix = (
+        "Check MODEL_MODE in .env (cheap, free or custom). Only with MODEL_MODE=custom are "
+        "CHAT_MODEL / SMART_MODEL / VISION_MODEL / EMBEDDING_MODEL used: check those too."
+    )
     help_ref = "setup/SWAP_PROVIDER.md"
 
 

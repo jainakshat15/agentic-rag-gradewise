@@ -11,15 +11,15 @@ _Looking at this in Cursor or VS Code? Right-click `README.md` in the Explorer o
 
 I couldn't be more excited to have you here. Over the next six weeks we build one serious, end-to-end agentic system together, and you'll understand every line of it.
 
-Here's the story. **Asha** teaches *CS201 Systems Fundamentals* at the (fictional) **Northbridge Institute**. Every term she spends whole weekends marking handwritten exam scripts. By the end of this course, **GradeWise** will do the heavy lifting for her:
+Here's the story. **Emma** teaches *CS201 Systems Fundamentals* at the (fictional) **Northbridge Institute**. Every term she spends whole weekends marking handwritten exam scripts. By the end of this course, **GradeWise** will do the heavy lifting for her:
 
 1. 📚 **Learn the course material**: ingest course PDFs into a RAG knowledge base
 2. 📝 **Understand the exam**: turn the question paper, marking scheme and methodology into validated JSON
 3. ✍️ **Read handwriting**: transcribe each student's answer sheet with a vision model, faithfully
 4. ⚖️ **Grade with evidence**: an agent marks every answer against the rubric, citing the course material
-5. 📊 **Write report cards**: store them, and let Asha *chat with the results*
+5. 📊 **Write report cards**: store them, and let Emma *chat with the results*
 
-And Asha always stays in control: GradeWise asks a human whenever it isn't sure.
+And Emma always stays in control: GradeWise asks a human whenever it isn't sure.
 
 ---
 
@@ -58,19 +58,20 @@ Stuck? Open [setup/troubleshooting.ipynb](setup/troubleshooting.ipynb). It walks
 
 ---
 
-## 💰 API costs: please read me!
+## 💰 Costs & free mode
 
-This course calls AI models through an API, which needs a key and a small spend. We set this up in the setup guides.
+This course calls AI models through an API. You need **one key**, `OPENROUTER_API_KEY`, from [openrouter.ai/keys](https://openrouter.ai/keys), and one line in `.env`, `MODEL_MODE`, decides what you pay:
 
-| | Expected spend |
-|---|---|
-| Whole course, default settings | **under $10** (most weeks cost cents) |
-| Whole course with `BUDGET_MODE=true` | about $3 |
-| Using free local models via Ollama | $0 (slower, lower quality) |
+| `MODEL_MODE` | Models | What you need | Expected spend |
+|---|---|---|---|
+| `cheap` (**the default**) | `openai/gpt-6-luna` for every step ($0.10 / $0.50 per million tokens in / out), `text-embedding-3-small` | your OpenRouter key + a few dollars of credits (OpenRouter adds a small fee when you buy them) | **under $1** for the whole course (a few cents a week) |
+| `free` | `openrouter/free`: OpenRouter picks a free model for each call | your OpenRouter key, no credits | **$0** |
+| `custom` | whatever your `CHAT_MODEL` / `SMART_MODEL` / `VISION_MODEL` / `EMBEDDING_MODEL` say | the key for that provider (OpenRouter, OpenAI, Gemini, Anthropic), or none for local Ollama | yours to choose |
 
-- OpenAI asks for a small minimum credit (about $5). **Set a monthly budget limit** in your account.
-- Watch your spend at [platform.openai.com/usage](https://platform.openai.com/usage).
-- Prefer Anthropic, Google Gemini or local models? Everything works with them. See [setup/SWAP_PROVIDER.md](setup/SWAP_PROVIDER.md).
+- 🆓 **Free mode caveats:** 50 requests a day (1,000 a day once you've bought $10 of credits), so **pair it with `DATA_SIZE=small`**: a full class run makes hundreds of calls. The model changes from call to call, so results vary (GradeWise retries the odd hiccup). Free providers may log or train on prompts: fine for this course's fictional data, never OK for real student data. You may need to allow "free endpoints that may train on inputs" in your OpenRouter privacy settings.
+- 🚀 **Optional upgrade:** `MODEL_MODE=custom` with `SMART_MODEL=openrouter:openai/gpt-6.1-terra` ($1 / $5 per million tokens) gives you a stronger grader. Calling OpenAI, Gemini, Anthropic or Ollama directly works too: see [setup/SWAP_PROVIDER.md](setup/SWAP_PROVIDER.md).
+- 📦 **Just want to run things?** Set `DATA_SIZE=small` and every notebook, script and the app use a slice of the data: 2 PDFs, exam questions Q1–Q3 and 2 students (`student_01` and Sam). Faster, and cheaper still. `DATA_SIZE=full` is the default.
+- **Set a spending limit** on your key, and watch your spend in your [OpenRouter activity](https://openrouter.ai/activity) page.
 
 ---
 
