@@ -17,7 +17,7 @@ Install **Cursor** (https://cursor.com/, AppImage) or **VS Code** (https://code.
 ## Part 2: Clone
 ```bash
 mkdir -p ~/projects && cd ~/projects
-git clone https://github.com/<your-github-username>/agentic-rag-gradewise.git
+git clone https://github.com/jainakshat15/agentic-rag-gradewise.git
 cd agentic-rag-gradewise
 ```
 ✅ `ls` shows `setup  week1  gradewise  README.md …`
@@ -61,4 +61,4 @@ uv run setup/diagnostics.py
 ## Part 6: First notebook
 Open `week1/day1.ipynb` in Cursor/VS Code, select the `.venv` kernel, and run the first cell. Prefer the browser? `uv run jupyter lab`.
 
-✅ A green panel. You're ready! 🎉
+✅ The first cell prints `✅ Great: you're using the course's .venv kernel…`; run Part 2 and you get a green **Your settings** panel. You're ready! 🎉

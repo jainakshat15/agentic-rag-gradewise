@@ -2,7 +2,7 @@
 
 # 🍎 Setup instructions for Mac
 
-Welcome, Mac people! This takes about **15–25 minutes** and goes with the video **Week 1 · Day 1: "Mac Setup: Git, Cursor/VS Code, Clone and `uv sync`"**.
+Welcome, Mac people! This guide goes with the video **Week 1 · Day 1: "Mac Setup: Git, Cursor/VS Code, Clone and `uv sync`"**.
 
 Each Part ends with a ✅ **Checkpoint**. Please don't skip them!
 
@@ -13,8 +13,8 @@ Each Part ends with a ✅ **Checkpoint**. Please don't skip them!
 ## ⚠️ Before we begin: 3 Mac gotchas
 
 1. **Command Line Tools.** Git and compilers come from Apple's Command Line Tools. If any command below pops up *"…requires the command line developer tools"*, click **Install** and wait for it to finish.
-2. **Apple Silicon vs Intel.** Everything in this course works on both. If you use Homebrew, make sure it matches your chip (`uname -m` shows `arm64` on Apple Silicon).
-3. **Anaconda.** If you have Anaconda installed and your prompt starts with `(base)`, run `conda deactivate` before working on this course (and consider `conda config --set auto_activate_base false`). It can clash with uv.
+2. **Apple Silicon vs Intel.** Everything in this course works on both, and you don't need Homebrew for it. To check your chip, run `uname -m`: it prints `arm64` on Apple Silicon and `x86_64` on Intel.
+3. **Anaconda.** If you have Anaconda installed and your prompt starts with `(base)`, run `conda deactivate` before working on this course. To stop `(base)` from turning on in every new terminal, run `conda config --set auto_activate false` (older conda versions call this setting `auto_activate_base`). It can clash with uv, and `setup/diagnostics.py` warns you if a conda environment is still active.
 
 ---
 
@@ -30,11 +30,11 @@ Each Part ends with a ✅ **Checkpoint**. Please don't skip them!
 ## Part 2: Git and the repo
 
 1. Open a terminal in Cursor: **View → Terminal** (<kbd>Ctrl</kbd>+<kbd>`</kbd>).
-2. Check Git: `git --version`. If macOS offers to install the developer tools, accept, wait, then run it again.
+2. Check Git: `git --version`. If macOS offers to install the developer tools, accept, wait, then run it again. (You can also start that install yourself with `xcode-select --install`.)
 3. Create a projects folder and clone:
    ```bash
    mkdir -p ~/projects && cd ~/projects
-   git clone https://github.com/<your-github-username>/agentic-rag-gradewise.git
+   git clone https://github.com/jainakshat15/agentic-rag-gradewise.git
    ```
 4. **File → Open Folder…** → `~/projects/agentic-rag-gradewise` → trust the authors.
 
@@ -118,7 +118,7 @@ All sections ✅ (warnings ⚠️ are worth reading but usually OK).
 2. **Select Kernel → Python Environments…** → choose **`.venv`** (`…/agentic-rag-gradewise/.venv/bin/python`). Not listed? <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> → **Developer: Reload Window**.
 3. Run the first cell with <kbd>Shift</kbd>+<kbd>Enter</kbd>.
 
-✅ **Checkpoint:** a green ✅ panel appears. **You're ready!** 🎉
+✅ **Checkpoint:** the first cell prints `✅ Great: you're using the course's .venv kernel…`; run Part 2 and you get a green **Your settings** panel. **You're ready!** 🎉
 
 ---
 

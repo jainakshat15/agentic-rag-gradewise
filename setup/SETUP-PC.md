@@ -60,9 +60,9 @@ I use **VS Code** in the videos. **Cursor** (VS Code with AI built in) works ide
    ```
 5. Clone the course repo:
    ```powershell
-   git clone https://github.com/<your-github-username>/agentic-rag-gradewise.git
+   git clone https://github.com/jainakshat15/agentic-rag-gradewise.git
    ```
-   _(The exact URL is shown in the lecture resources and at the top of the GitHub page.)_
+   _(This is the course repo, https://github.com/jainakshat15/agentic-rag-gradewise. The same URL is in the lecture resources.)_
 6. Open the project: **File → Open Folder…** → choose `C:\Users\you\projects\agentic-rag-gradewise`. When asked *"Do you trust the authors?"*, choose **Yes**.
 
 ✅ **Checkpoint:** the Explorer on the left shows folders like `setup`, `week1`, `gradewise` and the file `README.md`.
@@ -167,7 +167,7 @@ Every section should show ✅ (a few ⚠️ warnings are OK: read them). Check 4
    - Don't see it? Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> → **Developer: Reload Window**, then try again.
 3. Click on the first code cell and press <kbd>Shift</kbd>+<kbd>Enter</kbd>.
 
-✅ **Checkpoint:** the setup cell prints a green ✅ panel. **You're ready for the course!** 🎉
+✅ **Checkpoint:** the first cell prints `✅ Great: you're using the course's .venv kernel…`; run Part 2 and you get a green **Your settings** panel. **You're ready for the course!** 🎉
 
 ---
 

@@ -83,6 +83,10 @@ CUSTOM_DEFAULTS = {
     "EMBEDDING_MODEL": "openrouter:openai/text-embedding-3-small",
 }
 QUOTES = "\"' "  # 💡 what we strip from values: quotes and spaces
+# 💡 Public key prefixes (the same for everyone's key of that kind): the only part of a key we ever print.
+#    Longest first, so "sk-or-v1-" wins over "sk-".
+KEY_PREFIXES = ("sk-or-v1-", "sk-or-", "sk-ant-api03-", "sk-ant-", "sk-proj-", "sk-svcacct-", "lsv2_pt_",
+                "lsv2_sk_", "AIza", "sk-")
 
 # Hosts we need to reach (host → why)
 HOSTS = {
@@ -446,8 +450,13 @@ class Diagnostics:
 
     @staticmethod
     def _mask(secret: str) -> str:
-        secret = secret.strip("\"' ")
-        return f"{secret[:7]}…{secret[-4:]}" if len(secret) > 12 else "***"
+        """`sk-or-v1-… (73 chars)`: only the public prefix every key of that kind shares, plus the length.
+
+        💡 Not a single character of the secret part is printed (not even the last few), so the console,
+        report.txt and a screenshot of either are safe to share."""
+        secret = secret.strip(QUOTES)
+        prefix = next((p for p in KEY_PREFIXES if secret.startswith(p) and len(secret) > len(p) + 8), "")
+        return f"{prefix}… ({len(secret)} chars)"
 
     # ── run everything ───────────────────────────────────────────────────
     def run(self) -> int:

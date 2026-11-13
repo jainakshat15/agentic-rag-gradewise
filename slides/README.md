@@ -5,7 +5,7 @@ The PowerPoint decks behind every video: **one deck per week**, built from one d
 | File | What it is |
 |---|---|
 | `source/master_template.pptx` | Every layout once, with placeholder text and notes on when to use each one |
-| `source/week_1.pptx` | Week 1: Foundations & your first win (17 videos, 280 slides) |
+| `source/week_1.pptx` | Week 1: Foundations & your first win (17 videos, 282 slides) |
 | `source/week_2.pptx` | Week 2: RAG, GradeWise's knowledge base (15 videos, 255 slides) |
 | `source/week_3.pptx` | Week 3: Agents & LangGraph (12 videos, 262 slides) |
 | `source/week_4.pptx` | Week 4: Agentic RAG & reading handwriting (12 videos, 211 slides) |
@@ -36,19 +36,19 @@ Every slide has **speaker notes**: the talking points for that moment of the vid
 | 2 | Day 1 - The 6-Week Roadmap and How Every Lecture Works | 19–35 | `week1/day1.ipynb` |
 | 3 | Day 1 - Setup Overview: uv, API Keys, Costs and the GitHub Repo | 36–48 | `setup/SETUP-PC.md` |
 | 4 | Day 1 - Windows Setup: Git, Cursor/VS Code, Clone and `uv sync` | 49–64 | `setup/SETUP-PC.md` |
-| 5 | Day 1 - Mac Setup: Git, Cursor/VS Code, Clone and `uv sync` | 65–79 | `setup/SETUP-mac.md` |
-| 6 | Day 1 - Your OpenRouter Key, the `.env` File and Running Diagnostics | 80–96 | `week1/day1.ipynb` |
-| 7 | Day 2 - How LLMs Work: Tokens, Context Windows, Temperature and Cost | 97–115 | `week1/day2.ipynb` |
-| 8 | Day 2 - The LangChain 1.x Ecosystem: Core, LangGraph, LangSmith, Deep Agents | 116–133 | `week1/day2.ipynb` |
-| 9 | Day 2 - First Calls with `init_chat_model`: Invoke, Stream, Batch, Swap Providers | 134–148 | `week1/day2.ipynb` |
-| 10 | Day 3 - Prompting for Extraction: System Prompts, Templates, Examples | 149–164 | `week1/day3.ipynb` |
-| 11 | Day 3 - Structured Output with Pydantic: Reliable JSON Every Time | 165–178 | `week1/day3.ipynb` |
-| 12 | Day 3 - Validation, Retries and Self-Correcting Extraction | 179–196 | `week1/day3.ipynb` |
-| 13 | Day 4 - Multimodal: Sending Images and PDF Pages to a Model | 197–214 | `week1/day4.ipynb` |
-| 14 | Day 4 - Tools and Tool Calling: `@tool`, `bind_tools` and the Tool Loop | 215–231 | `week1/day4.ipynb` |
-| 15 | 🧱 Day 5 - GradeWise Architecture Walkthrough: What We'll Build | 232–248 | `week1/day5.ipynb` |
-| 16 | 🧱 Day 5 - Designing the Exam Schema, Then Extracting the Paper to JSON | 249–267 | `week1/day5.ipynb` |
-| 17 | Day 5 - Week 1 Wrap-Up: Summary, Roadmap and Quiz | 268–280 | `week1/day5.ipynb` |
+| 5 | Day 1 - Mac Setup: Git, Cursor/VS Code, Clone and `uv sync` | 65–81 | `setup/SETUP-mac.md` |
+| 6 | Day 1 - Your OpenRouter Key, the `.env` File and Running Diagnostics | 82–98 | `week1/day1.ipynb` |
+| 7 | Day 2 - How LLMs Work: Tokens, Context Windows, Temperature and Cost | 99–117 | `week1/day2.ipynb` |
+| 8 | Day 2 - The LangChain 1.x Ecosystem: Core, LangGraph, LangSmith, Deep Agents | 118–135 | `week1/day2.ipynb` |
+| 9 | Day 2 - First Calls with `init_chat_model`: Invoke, Stream, Batch, Swap Providers | 136–150 | `week1/day2.ipynb` |
+| 10 | Day 3 - Prompting for Extraction: System Prompts, Templates, Examples | 151–166 | `week1/day3.ipynb` |
+| 11 | Day 3 - Structured Output with Pydantic: Reliable JSON Every Time | 167–180 | `week1/day3.ipynb` |
+| 12 | Day 3 - Validation, Retries and Self-Correcting Extraction | 181–198 | `week1/day3.ipynb` |
+| 13 | Day 4 - Multimodal: Sending Images and PDF Pages to a Model | 199–216 | `week1/day4.ipynb` |
+| 14 | Day 4 - Tools and Tool Calling: `@tool`, `bind_tools` and the Tool Loop | 217–233 | `week1/day4.ipynb` |
+| 15 | 🧱 Day 5 - GradeWise Architecture Walkthrough: What We'll Build | 234–250 | `week1/day5.ipynb` |
+| 16 | 🧱 Day 5 - Designing the Exam Schema, Then Extracting the Paper to JSON | 251–269 | `week1/day5.ipynb` |
+| 17 | Day 5 - Week 1 Wrap-Up: Summary, Roadmap and Quiz | 270–282 | `week1/day5.ipynb` |
 
 ### Week 2: `source/week_2.pptx`
 
